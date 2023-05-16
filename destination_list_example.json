@@ -1,0 +1,52 @@
+{
+    "email_list": [
+        {
+            "email_address": "john.doe@example.com",
+            "name": "John Doe",
+            "source": "Website",
+            "phone": "555-1234",
+            "already_sent": [
+                {
+                    "email_hash_md5": "a43298d7b072eca56a1908de1a4c112d",
+                    "email_times": 2
+                },
+                {
+                    "email_hash_md5": "e92174cfb59f38e33a4fc9f785bdaf8d",
+                    "email_times": 1
+                }
+            ]
+        },
+        {
+            "email_address": "jane.smith@example.com",
+            "name": "Jane Smith",
+            "source": "Referral",
+            "phone": "555-5678",
+            "already_sent": [
+                {
+                    "email_hash_md5": "fbc4a7eb5933a1e6d648697c5bcfd682",
+                    "email_times": 3
+                },
+                {
+                    "email_hash_md5": "0a8c4f0a12edcf3b8dd536e4da24edc9",
+                    "email_times": 1
+                },
+                {
+                    "email_hash_md5": "e57a47a9ce17c9740bb9a1c9a5c2200a",
+                    "email_times": 2
+                }
+            ]
+        },
+        {
+            "email_address": "mark.wilson@example.com",
+            "name": "Mark Wilson",
+            "source": "Event",
+            "phone": "555-9012",
+            "already_sent": [
+                {
+                    "email_hash_md5": "1a2b5d9403a13c1343453d486d23a72e",
+                    "email_times": 2
+                }
+            ]
+        }
+    ]
+}
