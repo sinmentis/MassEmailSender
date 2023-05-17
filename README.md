@@ -25,7 +25,7 @@
 2. Configure Json files, follow the format with provided  files
 3. Send Emails!
    ```sh
-   python3 main.py
+   cd src && python3 main.py
    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

@@ -1,10 +1,9 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-
 import os.path
 import typing
-import Common
+from . import jsonParser
 import json
+from smtplib import SMTP
+from email.mime.text import MIMEText
 
 """
 TODO:
@@ -33,7 +32,7 @@ def parser_decorator(func):
 
 
 @parser_decorator
-def parse_sender_data(filename: str, json_file: json = None) -> typing.List[Common.sender_email_account]:
+def parse_sender_data(filename: str, json_file: json = None) -> typing.List[jsonParser.sender_email_account]:
     """
     :param json_file: Placeholder for decorator
     :param filename: sender list file
@@ -49,7 +48,8 @@ def parse_sender_data(filename: str, json_file: json = None) -> typing.List[Comm
             password = email_sender["password"]
             description = email_sender["description"]
             daily_send_limit = int(email_sender["daily_send_limit"])
-            email_account = Common.sender_email_account(host, port, username, password, description, daily_send_limit)
+            email_account = jsonParser.sender_email_account(host, port, username, password, description,
+                                                            daily_send_limit)
             sender_list.append(email_account)
     except KeyError as e:
         raise Exception(f"Parsing error: Missing input from {filename} - {e}")
@@ -58,7 +58,7 @@ def parse_sender_data(filename: str, json_file: json = None) -> typing.List[Comm
 
 
 @parser_decorator
-def parse_email_to_send(filename: str, json_file: json = None) -> Common.email:
+def parse_email_to_send(filename: str, json_file: json = None) -> jsonParser.email:
     """
     :param json_file: Placeholder for decorator
     :param filename: Email with subject and message
@@ -67,7 +67,7 @@ def parse_email_to_send(filename: str, json_file: json = None) -> Common.email:
     try:
         subject = json_file["subject"]
         message = json_file["message"]
-        email = Common.email(subject, message)
+        email = jsonParser.email(subject, message)
     except KeyError as e:
         raise Exception(f"Parsing error: Missing input from {filename} - {e}")
 
@@ -88,7 +88,7 @@ def parse_destination_list(filename: str, json_file: json = None):
             name = data["name"]
             source = data["source"]
             phone = data["phone"]
-            destination = Common.target(email_address, name, source, phone)
+            destination = jsonParser.target(email_address, name, source, phone)
             for email in data.get("already_sent", []):
                 email_hash_md5 = email['email_hash_md5']
                 email_times = email['email_times']
@@ -100,13 +100,48 @@ def parse_destination_list(filename: str, json_file: json = None):
     return destination_list
 
 
-def main():
-    sender_list = parse_sender_data("sender.json")
-    email = parse_email_to_send("email_to_send.json")
-    destination_list = parse_destination_list("destination_list.json")
-    email_sender = Common.email_sender(destination_list, sender_list, email)
-    email_sender.start_sending()
+class email_worker:
+    def __init__(self, destination_list: typing.List[jsonParser.target],
+                 sender_list: typing.List[jsonParser.sender_email_account],
+                 email_content: jsonParser.email, debug_only=False):
+        self.destination_list = destination_list
+        self.sender_list = sender_list
+        self.email_content = email_content
+        self.debug_only = debug_only
 
+        self.current_sender = sender_list[0]
 
-if __name__ == "__main__":
-    main()
+    def _construct_mime_message(self):
+        mime_message = MIMEText(self.email_content.message)
+        mime_message["Subject"] = self.email_content.subject
+        mime_message["From"] = self.current_sender.username
+        return mime_message
+
+    def start_sending(self):
+        with SMTP(self.current_sender.host, self.current_sender.port) as server:
+            server.set_debuglevel(2)
+
+            # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
+            # encrypted
+            server.ehlo()  # Identify yourself to an ESMTP server using EHLO
+            if server.has_extn('STARTTLS'):
+                print("STARTTLS extension is supported.")
+                server.starttls()
+            else:
+                print("STARTTLS extension is not supported.")
+            server.ehlo()  # re-identify ourselves as an encrypted connection
+
+            try:
+                server.login(self.current_sender.username, self.current_sender.password)
+            except Exception as e:
+                raise Exception(f"Login error: {e}")
+
+            mime_message = self._construct_mime_message()
+            for index, destination in enumerate(self.destination_list):
+                mime_message["To"] = destination.email_address
+                result = []
+                if not self.debug_only:
+                    result = server.send_message(mime_message)
+                print(
+                    f"({index + 1}/{len(self.destination_list):<5})\t{mime_message['From']:<10} -> "
+                    f"{mime_message['To']:<20}\t{result}")
