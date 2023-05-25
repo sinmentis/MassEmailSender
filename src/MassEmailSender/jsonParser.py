@@ -1,6 +1,3 @@
-import typing
-
-
 class sender_email_account:
     def __init__(self, host: str, port: int, username: str, password: str, description: str, daily_send_limit: int):
         self.host = host
@@ -10,6 +7,8 @@ class sender_email_account:
         self.description = description
         self.daily_send_limit = daily_send_limit
 
+    def __str__(self):
+        return self.username
 
 class email:
     def __init__(self, subject: str, message: str):
