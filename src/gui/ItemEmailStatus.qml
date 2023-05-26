@@ -6,167 +6,40 @@ import QtQuick.Window 2.1
 
 import Qt.labs.qmlmodels 1.0
 
+
 Item {
     width: 800
     height: 200
     Flickable {
         id: flickable
-
         anchors.fill: parent
         flickableDirection: Flickable.VerticalFlick
         boundsMovement: Flickable.StopAtBounds
         boundsBehavior: Flickable.StopAtBounds
 
         TableView {
-            anchors.fill: parent
             id: tableView
+            anchors.fill: parent
             rowSpacing: 3
 
             model: TableModel {
+                id: tableModel
+
                 TableModelColumn { display: "emailAddress" }
                 TableModelColumn { display: "checked" }
                 TableModelColumn { display: "remove" }
 
-                // Model data row representing here one type of fruit that can be ordered
-                rows: [
-                    // Each property is one cell/column.
-                    {
-                        checked: false,
-                        emailAddress: "test@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    },
-                    {
-                        checked: true,
-                        emailAddress: "test2@gmail.com",
-                        remove: "remove"
-                    }
-                ]
+                rows: []
             }
 
             delegate: DelegateChooser {
-
                 DelegateChoice {
                     column: 0
                     delegate: TextField {
                         implicitWidth: 650
                         implicitHeight: 30
                         font.capitalization: Font.AllUppercase
-                        text: model.display
+                        text: tableModel.rows[index]? tableModel.rows[index].emailAddress: ""
                         readOnly: true
                         verticalAlignment: TextInput.AlignVCenter // Align vertically centered
                         horizontalAlignment: TextInput.AlignHCenter // Align horizontally centered
@@ -178,7 +51,7 @@ Item {
                     delegate: CheckBox {
                         enabled: false
                         width: 50
-                        checked: model.display
+                        checked: false
                     }
                 }
 
@@ -186,7 +59,27 @@ Item {
                     column: 2
                     delegate: Button {
                         width: 10
-                        text: model.display
+                        text: "remove"
+                        onClicked: function() {
+                            // FIXME: Why 10? Why the index of first value is 10
+                            backend.removeEmailIndex(index-10)
+                        }
+                    }
+                }
+            }
+
+            Connections {
+                target: backend
+                function onDestinationEmailListChanged() {
+                    tableModel.clear()
+                    for (var i = 0; i < backend.emailDestinationList.length; i++) {
+
+                        var rowData = {
+                            emailAddress: backend.emailDestinationList[i],
+                            checked: "",
+                            remove: ""
+                        };
+                        tableModel.appendRow(rowData)
                     }
                 }
             }

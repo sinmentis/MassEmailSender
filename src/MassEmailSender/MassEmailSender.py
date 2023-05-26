@@ -3,7 +3,9 @@ import typing
 from . import jsonParser
 import json
 from smtplib import SMTP
-from email.mime.text import MIMEText
+import email
+from email.message import EmailMessage
+from email.header import Header
 
 """
 TODO:
@@ -100,26 +102,63 @@ def parse_destination_list(filename: str, json_file: json = None):
     return destination_list
 
 
-class email_worker:
-    def __init__(self, destination_list: typing.List[jsonParser.target],
-                 sender_list: typing.List[jsonParser.sender_email_account],
-                 email_content: jsonParser.email, debug_only=False):
-        self.destination_list = destination_list
+class EmailWorker:
+    def __init__(self, destination_list: typing.List[jsonParser.target] | None = None,
+                 sender_list: typing.List[jsonParser.sender_email_account] | None = None,
+                 email_content: jsonParser.email | None = None,
+                 debug_only=False):
+        self.destination_list = destination_list if destination_list else []
         self.sender_list = sender_list
         self.email_content = email_content
         self.debug_only = debug_only
 
-        self.current_sender = sender_list[0]
+        self.current_sender = None if sender_list is None else sender_list[0]
+        self.destination_already_sent_list = []
+
+    def set_destination_list(self, destination_list):
+        self.destination_list = destination_list
+
+    def remove_destination_list(self, index):
+        self.destination_list.remove(index)
+
+    def add_sender_list(self, sender_list):
+        self.sender_list = sender_list
+
+    def set_email_from_eml(self, eml_file):
+        if os.path.exists(eml_file):
+            with open(eml_file, 'rb') as file:
+                self.email_content = email.message_from_binary_file(file)
+                return True
+        print(f"{eml_file} doesn't exist")
+        return False
+
+    def select_sender(self, index):
+        if self.sender_list and index < len(self.sender_list):
+            self.current_sender = self.sender_list[index]
+            print(f"User {self.current_sender} been selected")
+        else:
+            raise Exception(f"Err: currently only {len(self.sender_list)} sender exist, asking for {index}")
 
     def _construct_mime_message(self):
-        mime_message = MIMEText(self.email_content.message)
-        mime_message["Subject"] = self.email_content.subject
-        mime_message["From"] = self.current_sender.username
-        return mime_message
+        email_message = EmailMessage()
+        subject_encoded = self.email_content['Subject']
+        subject_decoded = email.header.decode_header(subject_encoded)[0][0]
+        subject_decoded = subject_decoded.decode("utf-8")
+
+        # Remove the second part
+        if len(self.email_content.get_payload()) > 1:
+            del self.email_content.get_payload()[1:]
+
+        email_message.set_content(self.email_content)
+        email_message['Subject'] = subject_decoded
+        email_message['From'] = Header(self.current_sender.username, 'utf-8')
+        return email_message
 
     def start_sending(self):
+        mime_message = self._construct_mime_message()
+
         with SMTP(self.current_sender.host, self.current_sender.port) as server:
-            server.set_debuglevel(2)
+            # server.set_debuglevel(2)
 
             # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
             # encrypted
@@ -136,12 +175,17 @@ class email_worker:
             except Exception as e:
                 raise Exception(f"Login error: {e}")
 
-            mime_message = self._construct_mime_message()
+            self.destination_already_sent_list = []
             for index, destination in enumerate(self.destination_list):
-                mime_message["To"] = destination.email_address
-                result = []
+                if mime_message.get("To"):
+                    mime_message.replace_header('To', Header(destination.email_address, 'utf-8'))
+                else:
+                    mime_message["To"] = Header(destination.email_address, 'utf-8')
+
+                result = ""
                 if not self.debug_only:
                     result = server.send_message(mime_message)
+                    self.destination_already_sent_list.append(index)
                 print(
                     f"({index + 1}/{len(self.destination_list):<5})\t{mime_message['From']:<10} -> "
                     f"{mime_message['To']:<20}\t{result}")

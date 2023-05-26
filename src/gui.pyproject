@@ -12,6 +12,7 @@
         "gui/ItemEmailStatus.qml",
         "gui/ItemEmailParser.qml",
         "gui/ItemEmailLoader.qml",
-        "gui/ItemEmailSender.qml"
+        "gui/ItemEmailWorker.qml",
+        "gui/test.qml"
     ]
 }

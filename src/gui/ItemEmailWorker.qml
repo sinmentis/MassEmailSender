@@ -6,7 +6,7 @@ import QtQuick.Window 2.1
 
 
 GroupBox {
-    title: "Step 5 - Send Email "
+    title: "Step 5 - Send Email"
 
     Row {
         anchors{
@@ -21,7 +21,18 @@ GroupBox {
             Layout.fillWidth: true
             anchors.verticalCenter: parent.verticalCenter
             text: "Send"
-            onClicked: function() {}
+            enabled: getSendingButtonState()
+            onClicked: function() {
+                backend.startSending()
+            }
+
+            function getSendingButtonState() {
+                var ifEmailLoaded = backend.emlLoadState
+                var ifDestinationLoaded = (backend.emailDestinationList.length > 0)
+                var ifSenderReady = backend.senderList.length > 0
+
+                return ifEmailLoaded && ifDestinationLoaded && ifSenderReady
+            }
         }
 
         Text {
@@ -34,12 +45,19 @@ GroupBox {
         }
 
         Text {
-            text: "Empty"
+            text: getWorkerStateText()
             width: 200
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             color: "white"
+
+            function getWorkerStateText() {
+                var already_sent_out = backend.emailWorkerState.length
+                var total = backend.emailDestinationList.length
+
+                return already_sent_out + " / " + total
+            }
         }
     }
 }

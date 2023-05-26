@@ -43,6 +43,19 @@ Window {
             }
         }
 
+//        Loader {
+//            Layout.minimumWidth: 800
+//            height: mainWindow.loaderRowHeight
+//            source: "test.qml"
+//            Rectangle {
+//                anchors.fill: parent
+//                border.width: 1
+//                border.color: "white"
+//                color: "Transparent"
+//                visible: debug
+//            }
+//        }
+
         Loader {
             id: itemEmailParser
             Layout.minimumWidth: 800
@@ -89,7 +102,7 @@ Window {
             id: itemEmailSender
             Layout.minimumWidth: 800
             Layout.minimumHeight: mainWindow.loaderRowHeight * 2
-            source: "ItemEmailSender.qml"
+            source: "ItemEmailWorker.qml"
             Rectangle {
                 anchors.fill: parent
                 border.width: 1

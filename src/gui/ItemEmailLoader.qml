@@ -42,12 +42,13 @@ GroupBox {
         }
 
         Text {
-            text: "Empty"
+            text: backend.emlLoadState ? "Ready" : "Empty"
             width: 200
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            color: "white"
+            color: backend.emlLoadState ? "green" : "red"
+            font.bold: backend.emlLoadState
         }
     }
 
@@ -56,7 +57,10 @@ GroupBox {
         title: "Load EML File"
         nameFilters: ["EML files (*.eml)"]
         onAccepted: {
-            emlFilePath = fileDialog.fileUrls.length > 0 ? fileDialog.fileUrls[0].toLocalFile() : ""
+            if (selectedFile !== "") {
+                var file = selectedFile.toString().replace("file://", "")
+                backend.loadEMLFromFile(file)
+            }
         }
     }
 }

@@ -10,18 +10,9 @@ GroupBox{
         height: parent.height
         spacing: 20
 
-        Text {
-            text: "Current Sender"
-            width: 400
-            height: parent.height
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            color: "white"
-        }
-
         Item {
             height: parent.height
-            width: 200
+            width: 400
             anchors.verticalCenter: parent.verticalCenter
 
             ComboBox {
@@ -40,6 +31,7 @@ GroupBox{
             anchors.verticalCenter: parent.verticalCenter
             text: "Sender management"
             onClicked: function() {
+                // TODO: Pop sender management window, can add more if needed, and save to local
                 console.log("backend.senderList: ", backend.senderList)
             }
         }
