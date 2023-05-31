@@ -61,8 +61,10 @@ Item {
                         width: 10
                         text: "remove"
                         onClicked: function() {
-                            // FIXME: Why 10? Why the index of first value is 10
-                            backend.removeEmailIndex(index-10)
+                            // FIXME: Why index weird
+                            var indexOffset= tableModel.rows.length * 2
+                            var realIndex = index - indexOffset
+                            backend.removeEmailIndex(realIndex)
                         }
                     }
                 }

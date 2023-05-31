@@ -33,7 +33,7 @@ Window {
             id: itemSenderRow
             Layout.minimumWidth: 800
             height: mainWindow.loaderRowHeight
-            source: "ItemSenderRow.qml"
+            source: "ItemEmailSender.qml"
             Rectangle {
                 anchors.fill: parent
                 border.width: 1
@@ -42,19 +42,6 @@ Window {
                 visible: debug
             }
         }
-
-//        Loader {
-//            Layout.minimumWidth: 800
-//            height: mainWindow.loaderRowHeight
-//            source: "test.qml"
-//            Rectangle {
-//                anchors.fill: parent
-//                border.width: 1
-//                border.color: "white"
-//                color: "Transparent"
-//                visible: debug
-//            }
-//        }
 
         Loader {
             id: itemEmailParser

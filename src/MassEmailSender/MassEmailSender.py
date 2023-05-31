@@ -119,7 +119,8 @@ class EmailWorker:
         self.destination_list = destination_list
 
     def remove_destination_list(self, index):
-        self.destination_list.remove(index)
+        if 0 <= index < len(self.destination_list):
+            del self.destination_list[index]
 
     def add_sender_list(self, sender_list):
         self.sender_list = sender_list
@@ -133,9 +134,12 @@ class EmailWorker:
         return False
 
     def select_sender(self, index):
+        if len(self.sender_list) == 0:
+            return
+
         if self.sender_list and index < len(self.sender_list):
             self.current_sender = self.sender_list[index]
-            print(f"User {self.current_sender} been selected")
+            print(f"User {self.current_sender['username']} been selected")
         else:
             raise Exception(f"Err: currently only {len(self.sender_list)} sender exist, asking for {index}")
 

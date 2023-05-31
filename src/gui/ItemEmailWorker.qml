@@ -29,7 +29,7 @@ GroupBox {
             function getSendingButtonState() {
                 var ifEmailLoaded = backend.emlLoadState
                 var ifDestinationLoaded = (backend.emailDestinationList.length > 0)
-                var ifSenderReady = backend.senderList.length > 0
+                var ifSenderReady = senderList? senderList.length > 0: false
 
                 return ifEmailLoaded && ifDestinationLoaded && ifSenderReady
             }
