@@ -1,14 +1,29 @@
+import json
+
 class sender_email_account:
-    def __init__(self, host: str, port: int, username: str, password: str, description: str, daily_send_limit: int):
+    def __init__(self, host: str = None, port: int = None, username: str = None, password: str = None,
+                 description: str = None, daily_send_limit: int = None, json_string: str=None):
         self.host = host
         self.port = port
         self.username = username
         self.password = password
         self.description = description
         self.daily_send_limit = daily_send_limit
+        if json_string:
+            self.from_json(json_string)
+
+    def from_json(self, json_string: str):
+        data = json.loads(json_string)
+        self.host = data.get('host')
+        self.port = data.get('port')
+        self.username = data.get('username')
+        self.password = data.get('password')
+        self.description = data.get('description')
+        self.daily_send_limit = data.get('daily_send_limit')
 
     def __str__(self):
         return self.username
+
 
 class email:
     def __init__(self, subject: str, message: str):
