@@ -1,4 +1,5 @@
 import os.path
+import time
 import typing
 from . import jsonParser
 import json
@@ -115,6 +116,12 @@ class EmailWorker:
         self.current_sender = None if sender_list is None else sender_list[0]
         self.destination_already_sent_list = []
 
+    def export_destination(self, filename):
+        data = {"email_list": [destination.to_dict() for destination in self.destination_list]}
+        with open(filename, "w") as file:
+            pass
+            # file.write("\n".join([for destination in ]))
+
     def set_destination_list(self, destination_list):
         self.destination_list = destination_list
 
@@ -155,13 +162,13 @@ class EmailWorker:
 
         email_message.set_content(self.email_content)
         email_message['Subject'] = subject_decoded
-        email_message['From'] = Header(self.current_sender.username, 'utf-8')
+        email_message['From'] = Header(self.current_sender["username"], 'utf-8')
         return email_message
 
-    def start_sending(self):
+    def start_sending(self, callback=None):
         mime_message = self._construct_mime_message()
 
-        with SMTP(self.current_sender.host, self.current_sender.port) as server:
+        with SMTP(self.current_sender["host"], self.current_sender["port"]) as server:
             # server.set_debuglevel(2)
 
             # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
@@ -175,7 +182,7 @@ class EmailWorker:
             server.ehlo()  # re-identify ourselves as an encrypted connection
 
             try:
-                server.login(self.current_sender.username, self.current_sender.password)
+                server.login(self.current_sender["username"], self.current_sender["password"])
             except Exception as e:
                 raise Exception(f"Login error: {e}")
 
@@ -186,10 +193,18 @@ class EmailWorker:
                 else:
                     mime_message["To"] = Header(destination.email_address, 'utf-8')
 
-                result = ""
+                result = True
                 if not self.debug_only:
-                    result = server.send_message(mime_message)
-                    self.destination_already_sent_list.append(index)
+                    try:
+                        server.send_message(mime_message)
+                    except:
+                        result = False
+                else:
+                    time.sleep(1)
+                self.destination_already_sent_list.append(index)
+                if callback:
+                    callback(index, result)
+
                 print(
                     f"({index + 1}/{len(self.destination_list):<5})\t{mime_message['From']:<10} -> "
                     f"{mime_message['To']:<20}\t{result}")

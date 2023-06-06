@@ -26,7 +26,6 @@ Item {
                 id: tableModel
 
                 TableModelColumn { display: "emailAddress" }
-                TableModelColumn { display: "checked" }
                 TableModelColumn { display: "remove" }
 
                 rows: []
@@ -48,21 +47,11 @@ Item {
 
                 DelegateChoice {
                     column: 1
-                    delegate: CheckBox {
-                        enabled: false
-                        width: 50
-                        checked: false
-                    }
-                }
-
-                DelegateChoice {
-                    column: 2
                     delegate: Button {
                         width: 10
-                        text: "remove"
+                        text: tableModel.rows[index]? tableModel.rows[index].remove: ""
                         onClicked: function() {
-                            // FIXME: Why index weird
-                            var indexOffset= tableModel.rows.length * 2
+                            var indexOffset= tableModel.rows.length
                             var realIndex = index - indexOffset
                             backend.removeEmailIndex(realIndex)
                         }
@@ -74,12 +63,11 @@ Item {
                 target: backend
                 function onDestinationEmailListChanged() {
                     tableModel.clear()
-                    for (var i = 0; i < backend.emailDestinationList.length; i++) {
-
+                    var emailList = backend.emailDestinationList // Convert QVariantList to JavaScript array
+                    for (var i = 0; i < emailList.length; i++) {
                         var rowData = {
-                            emailAddress: backend.emailDestinationList[i],
-                            checked: "",
-                            remove: ""
+                            emailAddress: emailList[i]["email_address"],
+                            remove: "remove"
                         };
                         tableModel.appendRow(rowData)
                     }

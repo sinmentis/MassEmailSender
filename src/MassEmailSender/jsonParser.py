@@ -45,3 +45,23 @@ class target:
             "email_times": email_times
         }
         self.already_sent.append(sent_email)
+
+    def __str__(self):
+        data = {
+            "email_address": self.email_address,
+            "name": self.name,
+            "source": self.source,
+            "phone": self.phone,
+            "already_sent": self.already_sent
+        }
+        return json.dumps(data, indent=4)
+
+    def to_dict(self):
+        data = {
+            "email_address": self.email_address,
+            "name": self.name,
+            "source": self.source,
+            "phone": self.phone,
+            "already_sent": self.already_sent
+        }
+        return data

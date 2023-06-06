@@ -81,7 +81,7 @@ GroupBox{
         onAccepted: {
             if (selectedFile !== "") {
                 var file = selectedFile.toString().replace("file://", "")
-                backend.loadEmailListFromFile(file)
+                backend.loadDestinationFromFile(file)
             }
         }
     }

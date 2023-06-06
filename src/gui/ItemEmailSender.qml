@@ -47,8 +47,12 @@ GroupBox{
                         }
                     }
                 }
-                onCurrentIndexChanged: {
-                    backend.handleSelectionChange(currentIndex)
+
+                onCurrentIndexChanged: function() {
+                    if (currentIndex >= 0) {
+                        backend.handleSelectionChange(currentIndex)
+                        comboBox.displayText = senderList.get_dict_from_index(comboBox.currentIndex)? senderList.get_dict_from_index(comboBox.currentIndex)["username"] : ""
+                    }
                 }
             }
         }
@@ -76,5 +80,10 @@ GroupBox{
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         focus: true
         visible: false
+        onClosed: function () {
+            comboBox.model.modelReset()
+            comboBox.displayText = senderList.get_dict_from_index(comboBox.currentIndex)? senderList.get_dict_from_index(comboBox.currentIndex)["username"] : ""
+            backend.handleSelectionChange(comboBox.currentIndex)
+        }
     }
 }
