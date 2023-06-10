@@ -1,0 +1,19 @@
+{
+    "files":
+    [
+        "main.py",
+        "config_json/destination_list.json",
+        "config_json/sender.json",
+        "config_json/email_to_send.json",
+        "MassEmailSender/MassEmailSender.py",
+        "MassEmailSender/jsonParser.py",
+        "gui/main.qml",
+        "gui/ItemEmailSender.qml",
+        "gui/ItemEmailStatus.qml",
+        "gui/ItemEmailParser.qml",
+        "gui/ItemEmailLoader.qml",
+        "gui/ItemEmailWorker.qml",
+        "gui/WindowsSenderManagement.qml",
+        "gui/test.qml"
+    ]
+}
