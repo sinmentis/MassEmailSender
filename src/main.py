@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import datetime
 import json
 from PySide6.QtCore import QObject, Signal, Slot, Property, QAbstractListModel, Qt, QModelIndex, QByteArray
 from PySide6.QtGui import QGuiApplication
@@ -15,10 +16,6 @@ TODO:
     1.1 TBD
 2. Email worker side 
     2.0 Send email within daily limit, switch sender if possible
-    2.1 Modify the destination list datastructure to only have email address, or wrapper around it
-    2.2 Sender worker - eml format thing, not working in foxmail but works in gmail
-    2.3 After Email Parser
-        1. Adding export email list to local feature, with domain name as filename
 """
 
 
@@ -38,7 +35,7 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
         print()
 
     def export_to_local(self):
-        json_data = json.dumps({"email_sender_list":self.sender_list}, indent=4)
+        json_data = json.dumps({"email_sender_list": self.sender_list}, indent=4)
         with open(self.filename, "w") as file:
             file.writelines(json_data)
 
@@ -151,6 +148,7 @@ class Backend(QObject):
         self.engine = engine
         self.engine.rootContext().setContextProperty("senderList", self.sender_list)
 
+        self.domain_name_to_search = ""
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
 
@@ -194,7 +192,9 @@ class Backend(QObject):
 
     @Slot()
     def exportEmailListToLocal(self):
-        self.email_worker.export_destination()
+        current_time = datetime.datetime.now()
+        timestamp = current_time.strftime("%Y-%m-%d_%H-%M-%S")  # Format the timestamp as desired
+        self.email_worker.export_destination(f"./export_destination/{timestamp} - {self.domain_name_to_search}.json")
 
     @Slot(str)
     def loadDestinationFromFile(self, file_path):

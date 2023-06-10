@@ -106,7 +106,7 @@ def parse_destination_list(filename: str, json_file: json = None):
 class EmailWorker:
     def __init__(self, destination_list: typing.List[jsonParser.target] | None = None,
                  sender_list: typing.List[jsonParser.sender_email_account] | None = None,
-                 email_content: jsonParser.email | None = None,
+                 email_content: EmailMessage | None = None,
                  debug_only=False):
         self.destination_list = destination_list if destination_list else []
         self.sender_list = sender_list
@@ -119,8 +119,7 @@ class EmailWorker:
     def export_destination(self, filename):
         data = {"email_list": [destination.to_dict() for destination in self.destination_list]}
         with open(filename, "w") as file:
-            pass
-            # file.write("\n".join([for destination in ]))
+            json.dump(data, file)
 
     def set_destination_list(self, destination_list):
         self.destination_list = destination_list
@@ -133,12 +132,15 @@ class EmailWorker:
         self.sender_list = sender_list
 
     def set_email_from_eml(self, eml_file):
-        if os.path.exists(eml_file):
-            with open(eml_file, 'rb') as file:
-                self.email_content = email.message_from_binary_file(file)
-                return True
-        print(f"{eml_file} doesn't exist")
-        return False
+        if not os.path.exists(eml_file):
+            print(f"{eml_file} doesn't exist")
+            return False
+
+        with open(eml_file, 'r') as file:
+            eml_content = file.read()
+
+        self.email_content = email.message_from_string(eml_content)
+        return True
 
     def select_sender(self, index):
         if len(self.sender_list) == 0:
@@ -150,24 +152,7 @@ class EmailWorker:
         else:
             raise Exception(f"Err: currently only {len(self.sender_list)} sender exist, asking for {index}")
 
-    def _construct_mime_message(self):
-        email_message = EmailMessage()
-        subject_encoded = self.email_content['Subject']
-        subject_decoded = email.header.decode_header(subject_encoded)[0][0]
-        subject_decoded = subject_decoded.decode("utf-8")
-
-        # Remove the second part
-        if len(self.email_content.get_payload()) > 1:
-            del self.email_content.get_payload()[1:]
-
-        email_message.set_content(self.email_content)
-        email_message['Subject'] = subject_decoded
-        email_message['From'] = Header(self.current_sender["username"], 'utf-8')
-        return email_message
-
     def start_sending(self, callback=None):
-        mime_message = self._construct_mime_message()
-
         with SMTP(self.current_sender["host"], self.current_sender["port"]) as server:
             # server.set_debuglevel(2)
 
@@ -188,23 +173,26 @@ class EmailWorker:
 
             self.destination_already_sent_list = []
             for index, destination in enumerate(self.destination_list):
-                if mime_message.get("To"):
-                    mime_message.replace_header('To', Header(destination.email_address, 'utf-8'))
+                if 'From' in self.email_content.keys():
+                    self.email_content.replace_header('From', Header(self.current_sender["username"], 'utf-8'))
                 else:
-                    mime_message["To"] = Header(destination.email_address, 'utf-8')
+                    self.email_content['From'] = Header(self.current_sender["username"], 'utf-8')
+                if 'To' in self.email_content.keys():
+                    self.email_content.replace_header('To', Header(destination.email_address, 'utf-8'))
+                else:
+                    self.email_content['To'] = Header(destination.email_address, 'utf-8')
 
                 result = True
                 if not self.debug_only:
                     try:
-                        server.send_message(mime_message)
+                        server.send_message(self.email_content)
                     except:
                         result = False
-                else:
-                    time.sleep(1)
+
                 self.destination_already_sent_list.append(index)
                 if callback:
                     callback(index, result)
 
                 print(
-                    f"({index + 1}/{len(self.destination_list):<5})\t{mime_message['From']:<10} -> "
-                    f"{mime_message['To']:<20}\t{result}")
+                    f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
+                    f"{str(self.email_content['To']):<20}\t{result}")
