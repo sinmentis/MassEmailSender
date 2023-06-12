@@ -4,6 +4,7 @@
 import sys
 import datetime
 import json
+from EmailAll import emailall
 from PySide6.QtCore import QObject, Signal, Slot, Property, QAbstractListModel, Qt, QModelIndex, QByteArray
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
@@ -14,8 +15,9 @@ from MassEmailSender import MassEmailSender as MES
 TODO:
 1. Email Parser side
     1.1 TBD
-2. Email worker side 
-    2.0 Send email within daily limit, switch sender if possible
+2. Test before release
+3. Pyinstaller spec file
+4. Multi-thread to unlock UI while processing?
 """
 
 
@@ -41,7 +43,7 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
 
     # Python -> QML
     senderListChanged = Signal()
-    
+
     # Functions - QML -> Python
     createSender = Signal()
     deleteSender = Signal(int)
@@ -143,12 +145,15 @@ class MyApp(QObject):
 class Backend(QObject):
     def __init__(self, engine):
         super().__init__()
-        self.email_worker = MES.EmailWorker(debug_only=True)
+        self.email_parser = emailall.EmailAll()
+        self.email_parser_results = None
+        self.domain_name_to_search = ""
+
         self.sender_list = SenderEmailQT("./config_json/sender.json")
         self.engine = engine
         self.engine.rootContext().setContextProperty("senderList", self.sender_list)
 
-        self.domain_name_to_search = ""
+        self.email_worker = MES.EmailWorker(debug_only=True)
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
 
@@ -158,6 +163,7 @@ class Backend(QObject):
     emlLoadStateChanged = Signal()
     emailWorkerStateChanged = Signal()
     emailSendingResult = Signal(int, bool)
+    emailParserState = Signal(bool)
 
     # Functions - QML -> Python
     startSearchingEmail = Signal(str)
@@ -186,9 +192,11 @@ class Backend(QObject):
     emailWorkerState = Property(int, getEmailWorkerState, notify=emailWorkerStateChanged)
 
     @Slot(str)
-    def startSearchingEmail(self, target_domin):
-        # TODO: pass it to seracher target_domin
-        print(f"TOOD: Start seraching {target_domin}")
+    def startSearchingEmail(self, target_domain):
+        self.domain_name_to_search = target_domain
+        self.emailParserState.emit()
+        self.email_parser_results = self.email_parser.run(self.domain_name_to_search)
+        # TODO: Process self.email_parser_results, update table etc.
 
     @Slot()
     def exportEmailListToLocal(self):
