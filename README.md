@@ -13,10 +13,10 @@
 </div>
 
 <!-- ABOUT THE PROJECT -->
-### Prerequisites
+# Prerequisites
 
 `python3`
-### Installation
+## Installation
 
 1. Clone the repo
    ```sh
@@ -31,8 +31,18 @@
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
+# Introduction
+
+1. The UI is based on PySide6, mostly draw in QML
+2. The Backend is written in python.
+3. Email parser are open to be improved, currently using following, huge thanks to open source!
+   1. [EmailAll](https://github.com/Taonn/EmailAll)
+   2. [Frisbee](https://github.com/9b/frisbee)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 <!-- CONTRIBUTING -->
-## Contributing
+# Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
