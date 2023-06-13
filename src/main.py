@@ -4,12 +4,16 @@
 import sys
 import datetime
 import json
-from EmailAll import emailall
+
 from PySide6.QtCore import QObject, Signal, Slot, Property, QAbstractListModel, Qt, QModelIndex, QByteArray
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
 from MassEmailSender import MassEmailSender as MES
+
+from EmailAll import emailall
+import logging
+from Frisbee import Frisbee
 
 """
 TODO:
@@ -145,8 +149,9 @@ class MyApp(QObject):
 class Backend(QObject):
     def __init__(self, engine):
         super().__init__()
-        self.email_parser = emailall.EmailAll(debug_only=False)
-        self.email_parser_results = None
+        self.email_parser_emailAll = emailall.EmailAll(debug_only=False)
+        self.email_parser_frisbee = Frisbee.Frisbee(log_level=logging.CRITICAL, save=True)
+
         self.domain_name_to_search = "fromLocal"
 
         self.sender_list = SenderEmailQT("./config_json/sender.json")
@@ -157,14 +162,36 @@ class Backend(QObject):
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
 
-    def update_destination_list(self, new_parser_results):
-        result_emails = []
-        for emails in new_parser_results.values():
-            if emails is not None:
-                for email in emails:
-                    result_emails.append(MES.jsonParser.target(email_address=email, name="", source="", phone=""))
+    def start_searching(self):
+        email_parser_results = []
 
-        self.email_worker.set_destination_list(list(set(result_emails)))
+        # Start EmailAll engine
+        email_parser_results_emailAll = []
+        emailAll_results = self.email_parser_emailAll.run(self.domain_name_to_search)
+        for source in emailAll_results.keys():
+            if emailAll_results[source] is not None:
+                email_parser_results_emailAll += emailAll_results[source]
+
+        # Start Frisbee engine
+        email_parser_results_frisbee = []
+        jobs = [{'engine': "bing", 'modifier': None,
+                 'domain': self.domain_name_to_search, 'limit': 500,
+                 'greedy': True, 'fuzzy': True}]
+        self.email_parser_frisbee.search(jobs)
+        frisbee_results = self.email_parser_frisbee.get_results()
+        for job in frisbee_results:
+            if len(job['results']['emails']):
+                email_parser_results_frisbee += job['results']['emails']
+
+        # Combine into one bigass list
+        email_parser_results += email_parser_results_emailAll
+        email_parser_results += email_parser_results_frisbee
+
+        return list(set(email_parser_results))
+
+    def update_destination_list(self, new_parser_results):
+        result_emails = [MES.jsonParser.target(email_address=email, name="", source="", phone="") for email in new_parser_results]
+        self.email_worker.set_destination_list(result_emails)
 
     # Python -> QML
     currentEmailSenderChanged = Signal()
@@ -204,9 +231,9 @@ class Backend(QObject):
     def startSearchingEmail(self, target_domain):
         self.domain_name_to_search = target_domain
         self.emailParserState.emit(False)
-        self.email_parser_results = self.email_parser.run(self.domain_name_to_search)
+        email_parser_results = self.start_searching()
         self.emailParserState.emit(True)
-        self.update_destination_list(self.email_parser_results)
+        self.update_destination_list(email_parser_results)
         self.destinationEmailListChanged.emit()
 
     @Slot()

@@ -1,3 +1,6 @@
 [submodule "src/emailAll-simplified"]
 	path = src/EmailAll
 	url = git@github.com:sinmentis/EmailAll-simplified.git
+[submodule "src/Frisbee"]
+	path = src/Frisbee
+	url = git@github.com:sinmentis/frisbee-simplified.git
