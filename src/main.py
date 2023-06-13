@@ -145,17 +145,26 @@ class MyApp(QObject):
 class Backend(QObject):
     def __init__(self, engine):
         super().__init__()
-        self.email_parser = emailall.EmailAll()
+        self.email_parser = emailall.EmailAll(debug_only=False)
         self.email_parser_results = None
-        self.domain_name_to_search = ""
+        self.domain_name_to_search = "fromLocal"
 
         self.sender_list = SenderEmailQT("./config_json/sender.json")
         self.engine = engine
         self.engine.rootContext().setContextProperty("senderList", self.sender_list)
 
-        self.email_worker = MES.EmailWorker(debug_only=True)
+        self.email_worker = MES.EmailWorker(debug_only=False)
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
+
+    def update_destination_list(self, new_parser_results):
+        result_emails = []
+        for emails in new_parser_results.values():
+            if emails is not None:
+                for email in emails:
+                    result_emails.append(MES.jsonParser.target(email_address=email, name="", source="", phone=""))
+
+        self.email_worker.set_destination_list(list(set(result_emails)))
 
     # Python -> QML
     currentEmailSenderChanged = Signal()
@@ -194,9 +203,11 @@ class Backend(QObject):
     @Slot(str)
     def startSearchingEmail(self, target_domain):
         self.domain_name_to_search = target_domain
-        self.emailParserState.emit()
+        self.emailParserState.emit(False)
         self.email_parser_results = self.email_parser.run(self.domain_name_to_search)
-        # TODO: Process self.email_parser_results, update table etc.
+        self.emailParserState.emit(True)
+        self.update_destination_list(self.email_parser_results)
+        self.destinationEmailListChanged.emit()
 
     @Slot()
     def exportEmailListToLocal(self):
@@ -207,6 +218,7 @@ class Backend(QObject):
     @Slot(str)
     def loadDestinationFromFile(self, file_path):
         destination_list = MES.parse_destination_list(file_path)
+        self.domain_name_to_search = "fromLocal"
         self.email_worker.destination_already_sent_list = []
         self.emailWorkerStateChanged.emit()
         self.email_worker.set_destination_list(destination_list)

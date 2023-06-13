@@ -119,7 +119,7 @@ class EmailWorker:
     def export_destination(self, filename):
         data = {"email_list": [destination.to_dict() for destination in self.destination_list]}
         with open(filename, "w") as file:
-            json.dump(data, file)
+            json.dump(data, file, indent=4)
 
     def set_destination_list(self, destination_list):
         self.destination_list = destination_list

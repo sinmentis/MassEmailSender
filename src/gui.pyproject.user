@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 10.0.1, 2023-06-06T23:57:30. -->
+<!-- Written by QtCreator 10.0.1, 2023-06-13T20:14:04. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -99,6 +99,7 @@
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
       <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Python.PysideBuildStep</value>
+      <value type="QString" key="Python.PySideProjectTool">/home/shun/.local/bin/pyside6-project</value>
      </valuemap>
      <value type="qlonglong" key="ProjectExplorer.BuildStepList.StepsCount">1</value>
      <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Build</value>
@@ -143,7 +144,6 @@
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">main.py2</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">PythonEditor.RunConfiguration./home/shun/private/Project/Email_Collect_May_8_2023/MassEmailSender/src/main.py</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/shun/private/Project/Email_Collect_May_8_2023/MassEmailSender/src/main.py</value>
-    <value type="QString" key="PythonEditor.RunConfiguation.Interpreter">{2c83ad9d-0781-4ee4-8a5a-fa5edaf12e7b}</value>
     <value type="QString" key="PythonEditor.RunConfiguation.Script">/home/shun/private/Project/Email_Collect_May_8_2023/MassEmailSender/src/main.py</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>

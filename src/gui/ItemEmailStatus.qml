@@ -49,7 +49,7 @@ Item {
                     column: 1
                     delegate: Button {
                         width: 10
-                        text: tableModel.rows[index]? tableModel.rows[index].remove: ""
+                        text: tableModel.rows[index]? tableModel.rows[index].remove: "remove"
                         onClicked: function() {
                             var indexOffset= tableModel.rows.length
                             var realIndex = index - indexOffset
