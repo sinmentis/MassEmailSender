@@ -1,0 +1,3 @@
+[submodule "src/emailAll-simplified"]
+	path = src/EmailAll
+	url = git@github.com:sinmentis/EmailAll-simplified.git
