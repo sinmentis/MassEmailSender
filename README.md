@@ -27,9 +27,16 @@
    ```sh
    cd src && python3 main.py
    ```
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+## Pyinstaller
+1. A nice easy pyinstaller spec file iss provided for executable generation
+```sh
+cd src && pyinstaller --noconfirm main.spec
+```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 # Introduction
 
