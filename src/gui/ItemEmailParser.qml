@@ -7,6 +7,18 @@ import QtQuick.Window 2.1
 GroupBox{
     title: "Step 2: Getting Email List"
     width: 800
+
+
+    function checkSearchButtonState() {
+        var emailPattern = /[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+        var isEmailValid = emailPattern.test(targetDomin.text)
+        if (isEmailValid) {
+            searchButton.enabled = true && backend.emailWorkerState !== 2
+        } else {
+            searchButton.enabled = false
+        }
+    }
+
     Row {
         anchors{
             horizontalCenter: parent.horizontalCenter
@@ -34,15 +46,7 @@ GroupBox{
             verticalAlignment: Text.AlignVCenter
             color: "white"
 
-            onTextChanged: {
-                var emailPattern = /[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
-                var isEmailValid = emailPattern.test(text)
-                if (isEmailValid) {
-                    searchButton.enabled = true
-                } else {
-                    searchButton.enabled = false
-                }
-            }
+            onTextChanged: checkSearchButtonState()
         }
 
         Button {
@@ -51,7 +55,10 @@ GroupBox{
             Layout.fillWidth: true
             anchors.verticalCenter: parent.verticalCenter
             text: "Start Searching"
-            onClicked: backend.startSearchingEmail(targetDomin.text)
+            onClicked: function() {
+                backend.startSearchingEmail(targetDomin.text)
+                checkSearchButtonState()
+            }
             enabled: false
         }
 
@@ -60,6 +67,7 @@ GroupBox{
             Layout.fillWidth: true
             anchors.verticalCenter: parent.verticalCenter
             text: "Load Email from local"
+            enabled: backend.emailWorkerState !== 2
             onClicked: function() {
                 fileDialog.open()
             }

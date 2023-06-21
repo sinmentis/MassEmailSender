@@ -27,11 +27,11 @@ GroupBox {
             }
 
             function getSendingButtonState() {
-                var ifEmailIfNotSending = backend.emailWorkerState == 0
+                var ifEmailIsNotSending = backend.emailWorkerState == 3  // ALL_READY = 3
                 var ifEmailLoaded = backend.emlLoadState
                 var ifDestinationLoaded = (backend.emailDestinationList.length > 0)
                 var ifSenderReady = senderList? senderList.senderLength > 0: false
-                return ifEmailLoaded && ifDestinationLoaded && ifSenderReady && ifEmailIfNotSending
+                return ifEmailLoaded && ifDestinationLoaded && ifSenderReady && ifEmailIsNotSending
             }
         }
 
@@ -45,18 +45,21 @@ GroupBox {
         }
 
         Text {
-            text: getWorkerStateText()
+            text: backend.emailWorkerStateStr
             width: 200
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            color: "white"
-
-            function getWorkerStateText() {
-                var already_sent_out = backend.emailWorkerState
-                var total = backend.emailDestinationList.length
-
-                return already_sent_out + " / " + total
+            color: getColor()
+            font.pointSize: 20
+            function getColor() {
+                if (backend.emailWorkerState == 0) {
+                    return "red"
+                } else if (backend.emailWorkerState == 1 || backend.emailWorkerState == 3 || backend.emailWorkerState == 4) {
+                    return "green"
+                } else if (backend.emailWorkerState == 2 || backend.emailWorkerState == 5) {
+                    return "white"
+                }
             }
         }
     }

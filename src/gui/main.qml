@@ -9,7 +9,7 @@ Window {
     id: mainWindow
 
     width: 800
-    height: 600
+    height: 650
     maximumHeight: height
     maximumWidth: width
     minimumHeight: height

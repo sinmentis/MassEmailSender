@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-
+import os.path
 import sys
 import datetime
 import json
+from enum import Enum
 
-from PySide6.QtCore import QObject, Signal, Slot, Property, QAbstractListModel, Qt, QModelIndex, QByteArray
+from PySide6.QtCore import QObject, Signal, Slot, Property, QAbstractListModel, Qt, QModelIndex, QByteArray, QThread
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
@@ -17,12 +18,19 @@ from Frisbee import Frisbee
 
 """
 TODO:
-1. Email Parser side
-    1.1 TBD
 2. Test before release
-3. Pyinstaller spec file
 4. Multi-thread to unlock UI while processing?
 """
+
+
+class SystemState(Enum):
+    ERROR = 0
+    IDLE = 1
+    DONE = 1
+    PARSING_EMAIL = 2
+    PARSING_EMAIL_FINISHED = 3
+    READY = 4
+    SENDING = 5
 
 
 class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
@@ -68,7 +76,8 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
 
     @Slot(int, str)
     def editSenderWithIndex(self, index: int, json_string: str):
-        self.sender_list[index] = self.sender_email_qt_to_dict(MES.jsonParser.sender_email_account(json_string=json_string))
+        self.sender_list[index] = self.sender_email_qt_to_dict(
+            MES.jsonParser.sender_email_account(json_string=json_string))
         self.export_to_local()
 
     def sender_email_qt_to_dict(self, sender_email_qt: MES.jsonParser.sender_email_account) -> dict:
@@ -149,10 +158,13 @@ class MyApp(QObject):
 class Backend(QObject):
     def __init__(self, engine):
         super().__init__()
-        self.email_parser_emailAll = emailall.EmailAll(debug_only=False)
+        self.email_parser_emailAll = emailall.EmailAll(debug_only=True)
         self.email_parser_frisbee = Frisbee.Frisbee(log_level=logging.CRITICAL, save=True)
 
         self.domain_name_to_search = "fromLocal"
+        self.state = SystemState.IDLE
+        self.search_thread = QThread()
+        self.search_worker = None
 
         self.sender_list = SenderEmailQT("./config_json/sender.json")
         self.engine = engine
@@ -162,36 +174,18 @@ class Backend(QObject):
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
 
-    def start_searching(self):
-        email_parser_results = []
-
-        # Start EmailAll engine
-        email_parser_results_emailAll = []
-        emailAll_results = self.email_parser_emailAll.run(self.domain_name_to_search)
-        for source in emailAll_results.keys():
-            if emailAll_results[source] is not None:
-                email_parser_results_emailAll += emailAll_results[source]
-
-        # Start Frisbee engine
-        email_parser_results_frisbee = []
-        jobs = [{'engine': "bing", 'modifier': None,
-                 'domain': self.domain_name_to_search, 'limit': 500,
-                 'greedy': True, 'fuzzy': True}]
-        self.email_parser_frisbee.search(jobs)
-        frisbee_results = self.email_parser_frisbee.get_results()
-        for job in frisbee_results:
-            if len(job['results']['emails']):
-                email_parser_results_frisbee += job['results']['emails']
-
-        # Combine into one bigass list
-        email_parser_results += email_parser_results_emailAll
-        email_parser_results += email_parser_results_frisbee
-
-        return list(set(email_parser_results))
-
     def update_destination_list(self, new_parser_results):
-        result_emails = [MES.jsonParser.target(email_address=email, name="", source="", phone="") for email in new_parser_results]
+        result_emails = [MES.jsonParser.target(email_address=email, name="", source="", phone="") for email in
+                         new_parser_results]
         self.email_worker.set_destination_list(result_emails)
+
+    def set_system_state(self, new_state: SystemState):
+        print(f"self.state: {self.state} \t new_state: { new_state} {new_state.name != SystemState.PARSING_EMAIL_FINISHED.name}")
+        if self.state == SystemState.PARSING_EMAIL:
+            if new_state.name != SystemState.PARSING_EMAIL_FINISHED.name:
+                return
+        self.state = new_state
+        self.emailWorkerStateChanged.emit()
 
     # Python -> QML
     currentEmailSenderChanged = Signal()
@@ -199,7 +193,6 @@ class Backend(QObject):
     emlLoadStateChanged = Signal()
     emailWorkerStateChanged = Signal()
     emailSendingResult = Signal(int, bool)
-    emailParserState = Signal(bool)
 
     # Functions - QML -> Python
     startSearchingEmail = Signal(str)
@@ -219,27 +212,54 @@ class Backend(QObject):
         return self.email_worker.email_content is not None
 
     def getEmailWorkerState(self):
-        return len(self.email_worker.destination_already_sent_list)
+        return self.state.value
 
+    def getEmailWorkerStateStr(self):
+        return self.state.name
+    
     # QML Model
     currentEmailSenderIndex = Property(int, getCurrentEmailSenderIndex, notify=currentEmailSenderChanged)
     emailDestinationList = Property(list, getEmailDestinationList, notify=destinationEmailListChanged)
     emlLoadState = Property("bool", getEmlLoadStateReady, notify=emlLoadStateChanged)
     emailWorkerState = Property(int, getEmailWorkerState, notify=emailWorkerStateChanged)
+    emailWorkerStateStr = Property(str, getEmailWorkerStateStr, notify=emailWorkerStateChanged)
 
     @Slot(str)
     def startSearchingEmail(self, target_domain):
         self.domain_name_to_search = target_domain
-        self.emailParserState.emit(False)
-        email_parser_results = self.start_searching()
-        self.emailParserState.emit(True)
-        self.update_destination_list(email_parser_results)
+        self.set_system_state(SystemState.PARSING_EMAIL)
+
+        # Check if a previous search thread is running
+        if self.search_thread and self.search_thread.isRunning():
+            # Emit a signal to stop the previous thread
+            del self.search_worker
+            self.search_thread.quit()
+            self.search_thread.wait()
+
+        # Create a worker thread for the task
+        self.search_thread = QThread()
+        self.search_worker = EmailSearchWorker(self.domain_name_to_search, self.email_parser_emailAll, self.email_parser_frisbee)
+        self.search_worker.moveToThread(self.search_thread)
+
+        # Connect signals and slots
+        self.search_worker.searchCompleted.connect(self.onSearchCompleted)
+        self.search_thread.started.connect(self.search_worker.start)
+        self.search_thread.finished.connect(self.search_thread.deleteLater)
+        self.search_thread.start()
+
+
+    @Slot(list)
+    def onSearchCompleted(self, search_results):
+        self.update_destination_list(search_results)
+        self.set_system_state(SystemState.PARSING_EMAIL_FINISHED)
         self.destinationEmailListChanged.emit()
 
     @Slot()
     def exportEmailListToLocal(self):
         current_time = datetime.datetime.now()
         timestamp = current_time.strftime("%Y-%m-%d_%H-%M-%S")  # Format the timestamp as desired
+        if not os.path.exists("./export_destination"):
+            os.mkdir("./export_destination")
         self.email_worker.export_destination(f"./export_destination/{timestamp} - {self.domain_name_to_search}.json")
 
     @Slot(str)
@@ -247,14 +267,14 @@ class Backend(QObject):
         destination_list = MES.parse_destination_list(file_path)
         self.domain_name_to_search = "fromLocal"
         self.email_worker.destination_already_sent_list = []
-        self.emailWorkerStateChanged.emit()
+        self.set_system_state(SystemState.READY)  # FIXME: not really, depends on UI to block it :(
         self.email_worker.set_destination_list(destination_list)
         self.destinationEmailListChanged.emit()
 
     @Slot(str)
     def loadEMLFromFile(self, file_path):
         self.email_worker.destination_already_sent_list = []
-        self.emailWorkerStateChanged.emit()
+        self.set_system_state(SystemState.READY)  # FIXME: not really, depends on UI to block it :(
         if self.email_worker.set_email_from_eml(file_path):
             self.emlLoadStateChanged.emit()
 
@@ -264,18 +284,59 @@ class Backend(QObject):
         self.destinationEmailListChanged.emit()
 
     def email_status_callback(self, destination_index: int, result: bool):
-        self.emailWorkerStateChanged.emit()
         self.emailSendingResult.emit(destination_index, result)
-        print(f"Sending email to {destination_index}: {self.email_worker.destination_list[destination_index].email_address}. Result: {result}")
+        print(
+            f"Sending email to {destination_index}: {self.email_worker.destination_list[destination_index].email_address}. Result: {result}")
 
     @Slot()
     def startSending(self):
-        self.email_worker.start_sending(callback=self.email_status_callback)
+        self.set_system_state(SystemState.SENDING)
+        if not self.email_worker.start_sending(callback=self.email_status_callback):
+            self.set_system_state(SystemState.ERROR)
+        self.set_system_state(SystemState.DONE)
 
     @Slot(int)
     def handleSelectionChange(self, current_index):
         self.email_worker.select_sender(current_index)
         self.currentEmailSenderChanged.emit()
+
+
+class EmailSearchWorker(QObject):
+    searchCompleted = Signal(list)
+
+    def __init__(self, domain_name, email_parser_emailAll, email_parser_frisbee):
+        super().__init__()
+        self.domain_name = domain_name
+        self.email_parser_emailAll = email_parser_emailAll
+        self.email_parser_frisbee = email_parser_frisbee
+
+    @Slot()
+    def start(self):
+        email_parser_results = []
+
+        # Start EmailAll engine
+        email_parser_results_emailAll = []
+        emailAll_results = self.email_parser_emailAll.run(self.domain_name)
+        for source in emailAll_results.keys():
+            if emailAll_results[source] is not None:
+                email_parser_results_emailAll += emailAll_results[source]
+
+        # Start Frisbee engine
+        email_parser_results_frisbee = []
+        jobs = [{'engine': "bing", 'modifier': None,
+                 'domain': self.domain_name, 'limit': 500,
+                 'greedy': True, 'fuzzy': True}]
+        self.email_parser_frisbee.search(jobs)
+        frisbee_results = self.email_parser_frisbee.get_results()
+        for job in frisbee_results:
+            if len(job['results']['emails']):
+                email_parser_results_frisbee += job['results']['emails']
+
+        # Combine into one big list
+        email_parser_results += email_parser_results_emailAll
+        email_parser_results += email_parser_results_frisbee
+
+        self.searchCompleted.emit(list(set(email_parser_results)))
 
 
 def main():

@@ -1,8 +1,9 @@
 import json
 
+
 class sender_email_account:
     def __init__(self, host: str = None, port: int = None, username: str = None, password: str = None,
-                 description: str = None, daily_send_limit: int = None, json_string: str=None):
+                 description: str = None, daily_send_limit: int = None, json_string: str = None):
         self.host = host
         self.port = port
         self.username = username
