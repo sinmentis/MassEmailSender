@@ -42,13 +42,14 @@ GroupBox {
         }
 
         Text {
-            text: backend.emlLoadState ? "Ready" : "Empty"
+            text: backend.emlLoadState ? "Email load success!" : "No Email!"
             width: 200
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             color: backend.emlLoadState ? "green" : "red"
             font.bold: backend.emlLoadState
+            font.pointSize: 20
         }
     }
 

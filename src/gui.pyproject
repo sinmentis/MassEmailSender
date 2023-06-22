@@ -13,7 +13,6 @@
         "gui/ItemEmailParser.qml",
         "gui/ItemEmailLoader.qml",
         "gui/ItemEmailWorker.qml",
-        "gui/WindowsSenderManagement.qml",
-        "gui/test.qml"
+        "gui/WindowsSenderManagement.qml"
     ]
 }

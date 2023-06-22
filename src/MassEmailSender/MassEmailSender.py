@@ -1,5 +1,5 @@
 import os.path
-import time
+import os
 import typing
 from . import jsonParser
 import json
@@ -17,6 +17,11 @@ TODO:
 """
 
 
+def convert_to_windows_path(path):
+    windows_path = path.replace('/', '\\')
+    return windows_path
+
+
 def parser_decorator(func):
     """
     :param func: has to take arguments (filename: str, json_file: json = None)
@@ -24,12 +29,17 @@ def parser_decorator(func):
     """
 
     def wrapper(*args, **kwargs):
-        if os.path.isfile(args[0]):
-            with open(args[0]) as file:
+        filepath = os.path.normpath(args[0])
+
+        if os.name == 'nt' and filepath[0] in ("/", "\\"):
+            filepath = os.path.abspath(filepath[1:])
+
+        if os.path.exists(filepath):
+            with open(filepath) as file:
                 kwargs["json_file"] = json.load(file)
             return func(*args, **kwargs)
         else:
-            raise Exception(f"{args[0]} doesn't exist, exit...")
+            raise Exception(f"{filepath} doesn't exist, exit...")
 
     return wrapper
 
@@ -132,14 +142,13 @@ class EmailWorker:
         self.sender_list = sender_list
 
     def set_email_from_eml(self, eml_file):
-        if not os.path.exists(eml_file):
-            print(f"{eml_file} doesn't exist")
-            return False
+        filepath = os.path.normpath(eml_file)
+        if os.name == 'nt' and filepath[0] in ("/", "\\"):
+            filepath = os.path.abspath(filepath[1:])
 
-        with open(eml_file, 'r') as file:
-            eml_content = file.read()
-
-        self.email_content = email.message_from_string(eml_content)
+        with open(filepath) as file:
+            json_file = file.read()
+        self.email_content = email.message_from_string(json_file)
         return True
 
     def select_sender(self, index):
@@ -153,46 +162,47 @@ class EmailWorker:
             raise Exception(f"Err: currently only {len(self.sender_list)} sender exist, asking for {index}")
 
     def start_sending(self, callback=None):
-        with SMTP(self.current_sender["host"], self.current_sender["port"]) as server:
-            # server.set_debuglevel(2)
+        try:
+            with SMTP(self.current_sender["host"], self.current_sender["port"]) as server:
+                # server.set_debuglevel(2)
 
-            # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
-            # encrypted
-            server.ehlo()  # Identify yourself to an ESMTP server using EHLO
-            if server.has_extn('STARTTLS'):
-                print("STARTTLS extension is supported.")
-                server.starttls()
-            else:
-                print("STARTTLS extension is not supported.")
-            server.ehlo()  # re-identify ourselves as an encrypted connection
+                # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
+                # encrypted
+                server.ehlo()  # Identify yourself to an ESMTP server using EHLO
+                if server.has_extn('STARTTLS'):
+                    print("STARTTLS extension is supported.")
+                    server.starttls()
+                else:
+                    print("STARTTLS extension is not supported.")
+                server.ehlo()  # re-identify ourselves as an encrypted connection
 
-            try:
                 server.login(self.current_sender["username"], self.current_sender["password"])
-            except Exception as e:
-                raise Exception(f"Login error: {e}")
 
-            self.destination_already_sent_list = []
-            for index, destination in enumerate(self.destination_list):
-                if 'From' in self.email_content.keys():
-                    self.email_content.replace_header('From', Header(self.current_sender["username"], 'utf-8'))
-                else:
-                    self.email_content['From'] = Header(self.current_sender["username"], 'utf-8')
-                if 'To' in self.email_content.keys():
-                    self.email_content.replace_header('To', Header(destination.email_address, 'utf-8'))
-                else:
-                    self.email_content['To'] = Header(destination.email_address, 'utf-8')
+                self.destination_already_sent_list = []
+                for index, destination in enumerate(self.destination_list):
+                    if 'From' in self.email_content.keys():
+                        self.email_content.replace_header('From', Header(self.current_sender["username"], 'utf-8'))
+                    else:
+                        self.email_content['From'] = Header(self.current_sender["username"], 'utf-8')
+                    if 'To' in self.email_content.keys():
+                        self.email_content.replace_header('To', Header(destination.email_address, 'utf-8'))
+                    else:
+                        self.email_content['To'] = Header(destination.email_address, 'utf-8')
 
-                result = True
-                if not self.debug_only:
-                    try:
-                        server.send_message(self.email_content)
-                    except:
-                        result = False
+                    result = True
+                    if not self.debug_only:
+                        try:
+                            server.send_message(self.email_content)
+                        except:
+                            result = False
 
-                self.destination_already_sent_list.append(index)
-                if callback:
-                    callback(index, result)
+                    self.destination_already_sent_list.append(index)
+                    if callback:
+                        callback(index, result)
 
-                print(
-                    f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
-                    f"{str(self.email_content['To']):<20}\t{result}")
+                    print(
+                        f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
+                        f"{str(self.email_content['To']):<20}\t{result}")
+        except:
+            return False
+        return True

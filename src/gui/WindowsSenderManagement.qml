@@ -82,7 +82,6 @@ ApplicationWindow {
                         }
                         Text {
                             anchors.centerIn: parent
-                            color: "white"
                             text: model["username"]? model["username"]: ""
                         }
                     }
