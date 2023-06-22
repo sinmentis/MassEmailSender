@@ -23,7 +23,7 @@ GroupBox {
             text: "Send"
             enabled: getSendingButtonState()
                 onClicked: {
-                    workerstateText.text = "Sending!";
+                    popup.open();
                     emailSenderTimer.start();
                 }
 
@@ -72,6 +72,19 @@ GroupBox {
                     return "white"
                 }
             }
+        }
+    }
+
+    Popup {
+        id: popup
+        modal: true
+        width: 200
+        height: 200
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+
+        BusyIndicator {
+            running: image.status === Image.Loading
         }
     }
 }
