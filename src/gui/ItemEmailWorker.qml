@@ -22,12 +22,22 @@ GroupBox {
             anchors.verticalCenter: parent.verticalCenter
             text: "Send"
             enabled: getSendingButtonState()
-            onClicked: function() {
-                backend.startSending()
-            }
+                onClicked: {
+                    workerstateText.text = "Sending!";
+                    emailSenderTimer.start();
+                }
+
+                Timer {
+                    id: emailSenderTimer
+                    interval: 1
+                    repeat: false
+                    onTriggered: {
+                        backend.startSending();
+                    }
+                }
 
             function getSendingButtonState() {
-                var ifEmailIsNotSending = backend.emailWorkerState == 3  // ALL_READY = 3
+                var ifEmailIsNotSending = backend.emailWorkerState == 3 || backend.emailWorkerState == 4  // ALL_READY = 3
                 var ifEmailLoaded = backend.emlLoadState
                 var ifDestinationLoaded = (backend.emailDestinationList.length > 0)
                 var ifSenderReady = senderList? senderList.senderLength > 0: false
@@ -45,6 +55,7 @@ GroupBox {
         }
 
         Text {
+            id: workerstateText
             text: backend.emailWorkerStateStr
             width: 200
             height: parent.height

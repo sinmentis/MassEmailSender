@@ -22,6 +22,7 @@ GroupBox{
                 model: senderList
                 displayText: senderList.get_dict_from_index(currentIndex)? senderList.get_dict_from_index(currentIndex)["username"] : ""
                 currentIndex: 0
+                enabled: backend.emailWorkerState !== 2
                 delegate: Item {
                     width: comboBox.width
                     height: 30
@@ -42,7 +43,6 @@ GroupBox{
                         }
                         Text {
                             anchors.centerIn: parent
-                            color: "white"
                             text: model["username"]
                         }
                     }
@@ -62,6 +62,7 @@ GroupBox{
             Layout.fillWidth: true
             anchors.verticalCenter: parent.verticalCenter
             text: "Sender management"
+            enabled: backend.emailWorkerState !== 2
             onClicked: function() {
                 popupLoader.active = false
                 popupLoader.active = true

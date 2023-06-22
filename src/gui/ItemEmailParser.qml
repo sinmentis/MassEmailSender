@@ -44,8 +44,6 @@ GroupBox{
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            color: "white"
-
             onTextChanged: checkSearchButtonState()
         }
 

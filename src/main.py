@@ -144,6 +144,9 @@ class MyApp(QObject):
         self.backend = Backend(self.engine)
         self.setup()
 
+        # Connect the aboutToQuit signal to the cleanup function
+        self.app.aboutToQuit.connect(self.cleanup)
+
     def setup(self):
         context = self.engine.rootContext()
         context.setContextProperty("backend", self.backend)
@@ -154,12 +157,18 @@ class MyApp(QObject):
     def run(self):
         sys.exit(self.app.exec())
 
+    def cleanup(self):
+        # Quit the search thread if it's running
+        if self.backend.search_thread and self.backend.search_thread.isRunning():
+            self.backend.search_thread.quit()
+            self.backend.search_thread.wait()
+
 
 class Backend(QObject):
     def __init__(self, engine):
         super().__init__()
-        self.email_parser_emailAll = emailall.EmailAll(debug_only=True)
-        self.email_parser_frisbee = Frisbee.Frisbee(log_level=logging.CRITICAL, save=True)
+        self.email_parser_emailAll = emailall.EmailAll(debug_only=False)
+        self.email_parser_frisbee = Frisbee.Frisbee(log_level=logging.CRITICAL, save=False)
 
         self.domain_name_to_search = "fromLocal"
         self.state = SystemState.IDLE
@@ -180,7 +189,6 @@ class Backend(QObject):
         self.email_worker.set_destination_list(result_emails)
 
     def set_system_state(self, new_state: SystemState):
-        print(f"self.state: {self.state} \t new_state: { new_state} {new_state.name != SystemState.PARSING_EMAIL_FINISHED.name}")
         if self.state == SystemState.PARSING_EMAIL:
             if new_state.name != SystemState.PARSING_EMAIL_FINISHED.name:
                 return
@@ -216,7 +224,7 @@ class Backend(QObject):
 
     def getEmailWorkerStateStr(self):
         return self.state.name
-    
+
     # QML Model
     currentEmailSenderIndex = Property(int, getCurrentEmailSenderIndex, notify=currentEmailSenderChanged)
     emailDestinationList = Property(list, getEmailDestinationList, notify=destinationEmailListChanged)
@@ -238,7 +246,8 @@ class Backend(QObject):
 
         # Create a worker thread for the task
         self.search_thread = QThread()
-        self.search_worker = EmailSearchWorker(self.domain_name_to_search, self.email_parser_emailAll, self.email_parser_frisbee)
+        self.search_worker = EmailSearchWorker(self.domain_name_to_search, self.email_parser_emailAll,
+                                               self.email_parser_frisbee)
         self.search_worker.moveToThread(self.search_thread)
 
         # Connect signals and slots
@@ -246,7 +255,6 @@ class Backend(QObject):
         self.search_thread.started.connect(self.search_worker.start)
         self.search_thread.finished.connect(self.search_thread.deleteLater)
         self.search_thread.start()
-
 
     @Slot(list)
     def onSearchCompleted(self, search_results):
