@@ -5,6 +5,7 @@ import sys
 import datetime
 import json
 from enum import Enum
+from multiprocessing import freeze_support
 
 from PySide6.QtCore import QObject, Signal, Slot, Property, QAbstractListModel, Qt, QModelIndex, QByteArray, QThread
 from PySide6.QtGui import QGuiApplication
@@ -353,4 +354,5 @@ def main():
 
 
 if __name__ == "__main__":
+    freeze_support()
     main()
