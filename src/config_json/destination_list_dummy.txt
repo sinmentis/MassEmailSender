@@ -1,0 +1,10 @@
+dummyemail123@example.com
+testuser456@gmail.com
+tempmail789@hotmail.com
+sampleemail101@yahoo.com
+fakeaddress2023@outlook.com
+notarealperson@gmail.com
+throwawaymail555@example.com
+anonymoususer789@hotmail.com
+pretendemail123@yahoo.com
+tempuser456@outlook.com

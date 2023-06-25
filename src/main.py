@@ -273,7 +273,10 @@ class Backend(QObject):
 
     @Slot(str)
     def loadDestinationFromFile(self, file_path):
-        destination_list = MES.parse_destination_list(file_path)
+        if file_path.endswith(".txt") or file_path.endswith(".TXT"):
+            destination_list = MES.parse_destination_list_from_txt(file_path)
+        else:
+            destination_list = MES.parse_destination_list_from_json(file_path)
         self.domain_name_to_search = "fromLocal"
         self.email_worker.destination_already_sent_list = []
         self.set_system_state(SystemState.READY)  # FIXME: not really, depends on UI to block it :(

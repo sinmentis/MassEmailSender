@@ -83,7 +83,7 @@ GroupBox{
     FileDialog {
         id: fileDialog
         title: "Load Local Email File"
-        nameFilters: ["files (*)"]
+        nameFilters: ["json or text files (*.json *.txt)"]
         onAccepted: {
             if (selectedFile !== "") {
                 var file = selectedFile.toString().replace("file://", "")

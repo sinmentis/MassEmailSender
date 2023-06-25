@@ -86,9 +86,30 @@ def parse_email_to_send(filename: str, json_file: json = None) -> jsonParser.ema
 
     return email
 
+def parse_destination_list_from_txt(filename: str) -> list[jsonParser.target]:
+    """
+    :param filename: target txt file
+    :return: sender list of email_account
+    """
+    filepath = os.path.normpath(filename)
+
+    if os.name == 'nt' and filepath[0] in ("/", "\\"):
+        filepath = os.path.abspath(filepath[1:])
+
+    if os.path.exists(filepath):
+        with open(filename) as file:
+            data = file.readlines()
+    else:
+        return []
+
+    try:
+        destination_list = [jsonParser.target(line.strip(), "", "", "") for line in data]
+    except Exception as e:
+        raise Exception(f"Parsing error: Missing input from {filename} - {e}")
+    return destination_list
 
 @parser_decorator
-def parse_destination_list(filename: str, json_file: json = None):
+def parse_destination_list_from_json(filename: str, json_file: json = None) -> list[jsonParser.target]:
     """
     :param json_file: Placeholder for decorator
     :param filename: target list file
