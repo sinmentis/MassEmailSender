@@ -213,7 +213,7 @@ ApplicationWindow {
                 onClicked: {
                     var data = {
                         "host": hostInput.text,
-                        "port": portInput.text,
+                        "port": parseInt(portInput.text),
                         "username": usernameInput.text,
                         "password": passwordInput.text,
                         "description": descriptionInput.text,

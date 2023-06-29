@@ -65,7 +65,15 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
     @Slot()
     def createSender(self):
         self.sender_list.append(
-            self.sender_email_qt_to_dict(MES.jsonParser.sender_email_account(username="example@example.com")))
+            self.sender_email_qt_to_dict(
+                MES.jsonParser.sender_email_account(
+                    host="example.host",
+                    port=0,
+                    username="example@example.com",
+                    password="",
+                    description="",
+                    daily_send_limit=0
+                    )))
         self.senderListChanged.emit()
         self.export_to_local()
 
@@ -269,7 +277,7 @@ class Backend(QObject):
         timestamp = current_time.strftime("%Y-%m-%d_%H-%M-%S")  # Format the timestamp as desired
         if not os.path.exists("./export_destination"):
             os.mkdir("./export_destination")
-        self.email_worker.export_destination(f"./export_destination/{timestamp} - {self.domain_name_to_search}.json")
+        self.email_worker.export_destination(f"./export_destination/{timestamp} - {self.domain_name_to_search}")
 
     @Slot(str)
     def loadDestinationFromFile(self, file_path):

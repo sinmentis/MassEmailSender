@@ -64,7 +64,7 @@ GroupBox{
             height: parent.height
             Layout.fillWidth: true
             anchors.verticalCenter: parent.verticalCenter
-            text: "Load Email from local"
+            text: "Load Local Email Address"
             enabled: backend.emailWorkerState !== 2
             onClicked: function() {
                 fileDialog.open()
@@ -82,7 +82,7 @@ GroupBox{
 
     FileDialog {
         id: fileDialog
-        title: "Load Local Email File"
+        title: "Load Email Address File"
         nameFilters: ["json or text files (*.json *.txt)"]
         onAccepted: {
             if (selectedFile !== "") {

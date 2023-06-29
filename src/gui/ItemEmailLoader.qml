@@ -28,7 +28,7 @@ GroupBox {
             height: parent.height / 2
             Layout.fillWidth: true
             anchors.verticalCenter: parent.verticalCenter
-            text: "Load Email from local"
+            text: "Load EML file from local"
             onClicked: fileDialog.open()
         }
 
@@ -42,7 +42,7 @@ GroupBox {
         }
 
         Text {
-            text: backend.emlLoadState ? "Email load success!" : "No Email!"
+            text: backend.emlLoadState ? "Email load success!" : "Missing EML!"
             width: 200
             height: parent.height
             horizontalAlignment: Text.AlignHCenter

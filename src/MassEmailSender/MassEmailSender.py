@@ -150,9 +150,19 @@ class EmailWorker:
         self.destination_already_sent_list = []
 
     def export_destination(self, filename):
-        data = {"email_list": [destination.to_dict() for destination in self.destination_list]}
-        with open(filename, "w") as file:
-            json.dump(data, file, indent=4)
+        num_destinations = len(self.destination_list)
+        max_per_file = 500
+        num_files = (num_destinations + max_per_file - 1) // max_per_file
+
+        for i in range(num_files):
+            start_index = i * max_per_file
+            end_index = min((i + 1) * max_per_file, num_destinations)
+            destinations_subset = self.destination_list[start_index:end_index]
+
+            data = {"email_list": [destination.to_dict() for destination in destinations_subset]}
+            filename_with_index = f"{filename} - {i+1}_{num_files}.json"
+            with open(filename_with_index, "w") as file:
+                json.dump(data, file, indent=4)
 
     def set_destination_list(self, destination_list):
         self.destination_list = destination_list
@@ -199,7 +209,8 @@ class EmailWorker:
                     print("STARTTLS extension is not supported.")
                 server.ehlo()  # re-identify ourselves as an encrypted connection
 
-                server.login(self.current_sender["username"], self.current_sender["password"])
+                login_status = server.login(self.current_sender["username"], self.current_sender["password"])
+                # print(login_status)
 
                 self.destination_already_sent_list = []
                 for index, destination in enumerate(self.destination_list):
