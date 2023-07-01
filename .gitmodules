@@ -4,3 +4,6 @@
 [submodule "src/Frisbee"]
 	path = src/Frisbee
 	url = git@github.com:sinmentis/frisbee-simplified.git
+[submodule "src/PyHunter"]
+	path = src/PyHunter
+	url = git@github.com:sinmentis/PyHunter-simplified.git

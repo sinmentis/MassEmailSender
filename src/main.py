@@ -11,17 +11,13 @@ from PySide6.QtCore import QObject, Signal, Slot, Property, QAbstractListModel, 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
+import PyHunter
 from MassEmailSender import MassEmailSender as MES
 
 from EmailAll import emailall
 import logging
 from Frisbee import Frisbee
-
-"""
-TODO:
-2. Test before release
-4. Multi-thread to unlock UI while processing?
-"""
+from PyHunter import pyhunter
 
 
 class SystemState(Enum):
@@ -73,7 +69,7 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
                     password="",
                     description="",
                     daily_send_limit=0
-                    )))
+                )))
         self.senderListChanged.emit()
         self.export_to_local()
 
@@ -177,7 +173,8 @@ class Backend(QObject):
     def __init__(self, engine):
         super().__init__()
         self.email_parser_emailAll = emailall.EmailAll(debug_only=False)
-        self.email_parser_frisbee = Frisbee.Frisbee(log_level=logging.CRITICAL, save=False)
+        self.email_parser_frisbee = Frisbee.Frisbee(log_level=logging.DEBUG, save=False)
+        self.email_parser_pyhunter = PyHunter.PyHunter(pyhunter_API_getter())
 
         self.domain_name_to_search = "fromLocal"
         self.state = SystemState.IDLE
@@ -256,7 +253,7 @@ class Backend(QObject):
         # Create a worker thread for the task
         self.search_thread = QThread()
         self.search_worker = EmailSearchWorker(self.domain_name_to_search, self.email_parser_emailAll,
-                                               self.email_parser_frisbee)
+                                               self.email_parser_frisbee, self.email_parser_pyhunter)
         self.search_worker.moveToThread(self.search_thread)
 
         # Connect signals and slots
@@ -324,11 +321,12 @@ class Backend(QObject):
 class EmailSearchWorker(QObject):
     searchCompleted = Signal(list)
 
-    def __init__(self, domain_name, email_parser_emailAll, email_parser_frisbee):
+    def __init__(self, domain_name, email_parser_emailAll, email_parser_frisbee, email_parser_pyhunter):
         super().__init__()
         self.domain_name = domain_name
         self.email_parser_emailAll = email_parser_emailAll
         self.email_parser_frisbee = email_parser_frisbee
+        self.email_parser_pyhunter = email_parser_pyhunter
 
     @Slot()
     def start(self):
@@ -352,11 +350,28 @@ class EmailSearchWorker(QObject):
             if len(job['results']['emails']):
                 email_parser_results_frisbee += job['results']['emails']
 
+        # Start Pyhunter engine
+        try:
+            email_parser_results_pyhunter = self.email_parser_pyhunter.domain_search(self.domain_name, email_only=True)
+        except:
+            email_parser_results_pyhunter = []
+
         # Combine into one big list
         email_parser_results += email_parser_results_emailAll
         email_parser_results += email_parser_results_frisbee
+        email_parser_results += email_parser_results_pyhunter
 
         self.searchCompleted.emit(list(set(email_parser_results)))
+
+
+def pyhunter_API_getter():
+    try:
+        with open(os.path.join("config_json", "pyhunter_API.txt")) as file:
+            data = file.read().strip()
+    except:
+        print("ERR: config_json/pyhunter_API.txt not exist, skip hunter.io engine")
+        data = ""
+    return data
 
 
 def main():

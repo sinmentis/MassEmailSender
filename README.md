@@ -29,6 +29,9 @@
    ```
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Configuration
+Check `src/config_json` folder for example files.
+Notes `pyhunter_API.txt` is needed if wants to use hunter.io for email collection. Free account can add up to 10 emails if that helps :)
 
 ## Pyinstaller
 1. A nice easy pyinstaller spec file iss provided for executable generation
@@ -45,6 +48,7 @@ cd src && pyinstaller --noconfirm main.spec
 3. Email parser are open to be improved, currently using following, huge thanks to open source!
    1. [EmailAll](https://github.com/Taonn/EmailAll)
    2. [Frisbee](https://github.com/9b/frisbee)
+   3. [PyHunter](https://github.com/VonStruddle/PyHunter)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
