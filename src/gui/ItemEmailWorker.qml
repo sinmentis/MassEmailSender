@@ -70,6 +70,8 @@ GroupBox {
                     return "green"
                 } else if (backend.emailWorkerState == 2 || backend.emailWorkerState == 5) {
                     return "white"
+                } else {
+                    return "white"
                 }
             }
         }
@@ -87,4 +89,19 @@ GroupBox {
             running: image.status === Image.Loading
         }
     }
+
+    Connections {
+        target: backend
+        function onEmailWorkerStateChanged() {
+            if (backend.emailWorkerState == 1 && popup.opened) {
+                popup.close()
+            }
+            workerstateText.text = backend.emailWorkerStateStr
+        }
+
+        function onEmailSendFinished(result) {
+            workerstateText.text = result + "/" + result
+        }
+    }
 }
+

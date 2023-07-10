@@ -206,7 +206,7 @@ class Backend(QObject):
     destinationEmailListChanged = Signal()
     emlLoadStateChanged = Signal()
     emailWorkerStateChanged = Signal()
-    emailSendingResult = Signal(int, bool)
+    emailSendFinished = Signal(int)
 
     # Functions - QML -> Python
     startSearchingEmail = Signal(str)
@@ -301,16 +301,16 @@ class Backend(QObject):
         self.destinationEmailListChanged.emit()
 
     def email_status_callback(self, destination_index: int, result: bool):
-        self.emailSendingResult.emit(destination_index, result)
         print(
             f"Sending email to {destination_index}: {self.email_worker.destination_list[destination_index].email_address}. Result: {result}")
 
     @Slot()
     def startSending(self):
         self.set_system_state(SystemState.SENDING)
-        if not self.email_worker.start_sending(callback=self.email_status_callback):
+        if not self.email_worker.start_sending():  # (callback=self.email_status_callback):
             self.set_system_state(SystemState.ERROR)
         self.set_system_state(SystemState.DONE)
+        self.emailSendFinished.emit(len(self.email_worker.destination_list))
 
     @Slot(int)
     def handleSelectionChange(self, current_index):
