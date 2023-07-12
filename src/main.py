@@ -192,7 +192,9 @@ class Backend(QObject):
     def update_destination_list(self, new_parser_results):
         result_emails = [MES.jsonParser.target(email_address=email, name="", source="", phone="") for email in
                          new_parser_results]
-        self.email_worker.set_destination_list(result_emails)
+        result_emails += self.email_worker.destination_list
+
+        self.email_worker.set_destination_list(list(set(result_emails)))
 
     def set_system_state(self, new_state: SystemState):
         if self.state == SystemState.PARSING_EMAIL:
@@ -212,7 +214,7 @@ class Backend(QObject):
     startSearchingEmail = Signal(str)
     exportEmailListToLocal = Signal()
     loadEMLFromFile = Signal(str)
-    loadDestinationFromFile = Signal(str)
+    loadDestinationFromFiles = Signal(list)
     removeEmailIndex = Signal(int)
     startSending = Signal()
 
@@ -276,12 +278,17 @@ class Backend(QObject):
             os.mkdir("./export_destination")
         self.email_worker.export_destination(f"./export_destination/{timestamp} - {self.domain_name_to_search}")
 
-    @Slot(str)
-    def loadDestinationFromFile(self, file_path):
-        if file_path.endswith(".txt") or file_path.endswith(".TXT"):
-            destination_list = MES.parse_destination_list_from_txt(file_path)
-        else:
-            destination_list = MES.parse_destination_list_from_json(file_path)
+    @Slot(list)
+    def loadDestinationFromFiles(self, file_path):
+        destination_list = []
+        for file in file_path:
+            try:
+                if file.endswith(".txt") or file.endswith(".TXT"):
+                    destination_list += MES.parse_destination_list_from_txt(file)
+                else:
+                    destination_list += MES.parse_destination_list_from_json(file)
+            except:
+                pass
         self.domain_name_to_search = "fromLocal"
         self.email_worker.destination_already_sent_list = []
         self.set_system_state(SystemState.READY)  # FIXME: not really, depends on UI to block it :(

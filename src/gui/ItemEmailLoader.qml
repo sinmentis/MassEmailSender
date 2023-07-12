@@ -56,7 +56,8 @@ GroupBox {
     FileDialog {
         id: fileDialog
         title: "Load EML File"
-        nameFilters: ["EML files (*.eml)"]
+        nameFilters: ["EML files (*.eml)", "All (*.*)"]
+        options: FileDialog.ReadOnly
         onAccepted: {
             if (selectedFile !== "") {
                 var file = selectedFile.toString().replace("file://", "")

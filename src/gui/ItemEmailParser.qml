@@ -83,12 +83,16 @@ GroupBox{
     FileDialog {
         id: fileDialog
         title: "Load Email Address File"
-        nameFilters: ["json or text files (*.json *.txt)"]
+        nameFilters: ["json or text files (*.json *.txt)", "All (*.*)"]
+        fileMode: FileDialog.OpenFiles
+        options: FileDialog.ReadOnly
         onAccepted: {
-            if (selectedFile !== "") {
-                var file = selectedFile.toString().replace("file://", "")
-                backend.loadDestinationFromFile(file)
+            var fileList = []
+            for (var i = 0; i < selectedFiles.length; i++) {
+                var file = selectedFiles[i].toString().replace("file://", "")
+                fileList.push(file)
             }
+            backend.loadDestinationFromFiles(fileList)
         }
     }
 }

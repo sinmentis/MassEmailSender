@@ -66,3 +66,11 @@ class target:
             "already_sent": self.already_sent
         }
         return data
+
+    def __eq__(self, other):
+        if isinstance(other, target):
+            return self.email_address == other.email_address
+        return False
+
+    def __hash__(self):
+        return hash(self.email_address)
