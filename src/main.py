@@ -350,7 +350,7 @@ class EmailSearchWorker(QObject):
         email_parser_results_frisbee = []
         jobs = [{'engine': "bing", 'modifier': None,
                  'domain': self.domain_name, 'limit': 500,
-                 'greedy': True, 'fuzzy': True}]
+                 'greedy': False, 'fuzzy': False}]
         self.email_parser_frisbee.search(jobs)
         frisbee_results = self.email_parser_frisbee.get_results()
         for job in frisbee_results:
@@ -368,7 +368,10 @@ class EmailSearchWorker(QObject):
         email_parser_results += email_parser_results_frisbee
         email_parser_results += email_parser_results_pyhunter
 
-        self.searchCompleted.emit(list(set(email_parser_results)))
+        # Remove invalid email, only ends with @domain_name
+        email_parser_results = [email for email in set(email_parser_results) if email.endswith(f"@{self.domain_name}")]
+
+        self.searchCompleted.emit(email_parser_results)
 
 
 def pyhunter_API_getter():
