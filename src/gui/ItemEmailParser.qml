@@ -27,9 +27,20 @@ GroupBox{
         height: parent.height
         spacing: 40
 
+        Button {
+            height: parent.height
+            Layout.fillWidth: true
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Load Local"
+            enabled: backend.emailWorkerState !== 2
+            onClicked: function() {
+                fileDialog.open()
+            }
+        }
+
         Text {
-            text: "Domain to search: (i.e. gmail.com)"
-            width: 150
+            text: "Domain to search:"
+            width: 70
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -47,6 +58,25 @@ GroupBox{
             onTextChanged: checkSearchButtonState()
         }
 
+        Text {
+            text: "times: "
+            width: 15
+            height: parent.height
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            color: "white"
+        }
+
+        TextField {
+            id: searchTimes
+            text: "1"
+            width: 30
+            height: parent.height
+            anchors.verticalCenter: parent.verticalCenter
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+
         Button {
             id: searchButton
             height: parent.height
@@ -54,21 +84,10 @@ GroupBox{
             anchors.verticalCenter: parent.verticalCenter
             text: "Start Searching"
             onClicked: function() {
-                backend.startSearchingEmail(targetDomin.text)
+                backend.startSearchingEmail(targetDomin.text, parseInt(searchTimes.text))
                 checkSearchButtonState()
             }
             enabled: false
-        }
-
-        Button {
-            height: parent.height
-            Layout.fillWidth: true
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Load Local Email Address"
-            enabled: backend.emailWorkerState !== 2
-            onClicked: function() {
-                fileDialog.open()
-            }
         }
 
         Button {

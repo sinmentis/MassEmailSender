@@ -178,16 +178,22 @@ class Backend(QObject):
 
         self.domain_name_to_search = "fromLocal"
         self.state = SystemState.IDLE
-        self.search_thread = QThread()
-        self.search_worker = None
 
         self.sender_list = SenderEmailQT("./config_json/sender.json")
         self.engine = engine
         self.engine.rootContext().setContextProperty("senderList", self.sender_list)
 
+        # For Sending engine
         self.email_worker = MES.EmailWorker(debug_only=False)
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
+
+        # For Searching engine
+        self.search_thread = QThread()
+        self.target_search_times = 0
+        self.search_worker = None
+
+
 
     def update_destination_list(self, new_parser_results):
         result_emails = [MES.jsonParser.target(email_address=email, name="", source="", phone="") for email in
@@ -211,7 +217,7 @@ class Backend(QObject):
     emailSendFinished = Signal(int)
 
     # Functions - QML -> Python
-    startSearchingEmail = Signal(str)
+    startSearchingEmail = Signal(str, int)
     exportEmailListToLocal = Signal()
     loadEMLFromFile = Signal(str)
     loadDestinationFromFiles = Signal(list)
@@ -240,9 +246,10 @@ class Backend(QObject):
     emailWorkerState = Property(int, getEmailWorkerState, notify=emailWorkerStateChanged)
     emailWorkerStateStr = Property(str, getEmailWorkerStateStr, notify=emailWorkerStateChanged)
 
-    @Slot(str)
-    def startSearchingEmail(self, target_domain):
+    @Slot(str, int)
+    def startSearchingEmail(self, target_domain, search_times=1):
         self.domain_name_to_search = target_domain
+        self.target_search_times = search_times
         self.set_system_state(SystemState.PARSING_EMAIL)
 
         # Check if a previous search thread is running
@@ -267,8 +274,12 @@ class Backend(QObject):
     @Slot(list)
     def onSearchCompleted(self, search_results):
         self.update_destination_list(search_results)
-        self.set_system_state(SystemState.PARSING_EMAIL_FINISHED)
         self.destinationEmailListChanged.emit()
+
+        if self.target_search_times > 1:
+            self.startSearchingEmail(self.domain_name_to_search, self.target_search_times - 1)
+        else:
+            self.set_system_state(SystemState.PARSING_EMAIL_FINISHED)
 
     @Slot()
     def exportEmailListToLocal(self):
