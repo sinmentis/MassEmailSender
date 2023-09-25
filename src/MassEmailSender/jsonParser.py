@@ -13,6 +13,8 @@ class sender_email_account:
         if json_string:
             self.from_json(json_string)
 
+        self.daily_send_number = 0
+
     def from_json(self, json_string: str):
         data = json.loads(json_string)
         self.host = data.get('host')
