@@ -220,6 +220,7 @@ ApplicationWindow {
                         "daily_send_limit": parseInt(dailyLimitInput.text)
                     }
                     senderList.editSenderWithIndex(comboBox.currentIndex, JSON.stringify(data))
+                    comboBox.updateDropdownList()
                 }
                 enabled: hostInput.text.length > 0 && portInput.text.length > 0 && usernameInput.text.length > 0 &&
                          passwordInput.text.length > 0 && descriptionInput.text.length > 0 && dailyLimitInput.text.length > 0

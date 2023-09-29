@@ -99,8 +99,8 @@ GroupBox {
             workerstateText.text = backend.emailWorkerStateStr
         }
 
-        function onEmailSendFinished(result) {
-            workerstateText.text = result + "/" + result
+        function onEmailSendFinished(sent, total) {
+            workerstateText.text = sent + "/" + total
         }
     }
 }

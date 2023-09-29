@@ -194,49 +194,79 @@ class EmailWorker:
         else:
             raise Exception(f"Err: currently only {len(self.sender_list)} sender exist, asking for {index}")
 
+    def _check_sender_daily_limit(self, callback):
+        if self.current_sender["daily_send_number"] >= self.current_sender["daily_send_limit"]:
+            new_sender_index = self.sender_list.sender_list.index(self.current_sender) + 1
+            print("Max limit hit, Next select: ", new_sender_index)
+
+            # If reach end of the list, exit
+            if new_sender_index >= len(self.sender_list):
+                print("No more available sender, exit")
+                return True
+            else:
+                self.select_sender(new_sender_index)
+                try:
+                    self.destination_list = self.destination_list[max(self.destination_already_sent_list)+1:]
+                except:
+                    pass
+                self.start_sending(callback)
+            return True
+        return False
+
+    def _start_sending(self, server, callback):
+        self.destination_already_sent_list = []
+        for index, destination in enumerate(self.destination_list):
+
+            # Check if sender already sent enough for today
+            if self._check_sender_daily_limit(callback):
+                return
+
+            if 'From' in self.email_content.keys():
+                self.email_content.replace_header('From', Header(self.current_sender["username"], 'utf-8'))
+            else:
+                self.email_content['From'] = Header(self.current_sender["username"], 'utf-8')
+            if 'To' in self.email_content.keys():
+                self.email_content.replace_header('To', Header(destination.email_address, 'utf-8'))
+            else:
+                self.email_content['To'] = Header(destination.email_address, 'utf-8')
+
+            result = True
+            if not self.debug_only:
+                try:
+                    server.send_message(self.email_content)
+                except:
+                    result = False
+
+            self.current_sender["daily_send_number"] += 1
+            self.destination_already_sent_list.append(index)
+            if callback:
+                callback(index, result)
+
+            print(
+                f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
+                f"{str(self.email_content['To']):<20}\t{result}")
+
     def start_sending(self, callback=None):
-        try:
-            with SMTP(self.current_sender["host"], self.current_sender["port"]) as server:
-                # server.set_debuglevel(2)
+        if self.debug_only:
+            print("Fake login successes")
+            self._start_sending(None, callback)
+        else:
+            try:
+                with SMTP(self.current_sender["host"], self.current_sender["port"]) as server:
+                    # server.set_debuglevel(2)
 
-                # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
-                # encrypted
-                server.ehlo()  # Identify yourself to an ESMTP server using EHLO
-                if server.has_extn('STARTTLS'):
-                    print("STARTTLS extension is supported.")
-                    server.starttls()
-                else:
-                    print("STARTTLS extension is not supported.")
-                server.ehlo()  # re-identify ourselves as an encrypted connection
-
-                login_status = server.login(self.current_sender["username"], self.current_sender["password"])
-                # print(login_status)
-
-                self.destination_already_sent_list = []
-                for index, destination in enumerate(self.destination_list):
-                    if 'From' in self.email_content.keys():
-                        self.email_content.replace_header('From', Header(self.current_sender["username"], 'utf-8'))
+                    # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
+                    # encrypted
+                    server.ehlo()  # Identify yourself to an ESMTP server using EHLO
+                    if server.has_extn('STARTTLS'):
+                        print("STARTTLS extension is supported.")
+                        server.starttls()
                     else:
-                        self.email_content['From'] = Header(self.current_sender["username"], 'utf-8')
-                    if 'To' in self.email_content.keys():
-                        self.email_content.replace_header('To', Header(destination.email_address, 'utf-8'))
-                    else:
-                        self.email_content['To'] = Header(destination.email_address, 'utf-8')
+                        print("STARTTLS extension is not supported.")
+                    server.ehlo()  # re-identify ourselves as an encrypted connection
 
-                    result = True
-                    if not self.debug_only:
-                        try:
-                            server.send_message(self.email_content)
-                        except:
-                            result = False
-
-                    self.destination_already_sent_list.append(index)
-                    if callback:
-                        callback(index, result)
-
-                    print(
-                        f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
-                        f"{str(self.email_content['To']):<20}\t{result}")
-        except:
-            return False
+                    login_status = server.login(self.current_sender["username"], self.current_sender["password"])
+                    self._start_sending(server, callback)
+            except:
+                return False
         return True

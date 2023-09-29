@@ -43,7 +43,6 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
         self.filename = filename
         data = MES.parse_sender_data(self.filename)
         self.sender_list = [self.sender_email_qt_to_dict(sender) for sender in data]
-        print()
 
     def export_to_local(self):
         json_data = json.dumps({"email_sender_list": self.sender_list}, indent=4)
@@ -68,7 +67,7 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
                     username="example@example.com",
                     password="",
                     description="",
-                    daily_send_limit=0
+                    daily_send_limit=500
                 )))
         self.senderListChanged.emit()
         self.export_to_local()
@@ -92,7 +91,8 @@ class SenderEmailQT(QAbstractListModel, MES.jsonParser.sender_email_account):
             "username": sender_email_qt.username,
             "password": sender_email_qt.password,
             "description": sender_email_qt.description,
-            "daily_send_limit": sender_email_qt.daily_send_limit
+            "daily_send_limit": sender_email_qt.daily_send_limit,
+            "daily_send_number": sender_email_qt.daily_send_number
         }
         return data
 
@@ -184,6 +184,7 @@ class Backend(QObject):
         self.engine.rootContext().setContextProperty("senderList", self.sender_list)
 
         # For Sending engine
+        self.total_sent = 0
         self.email_worker = MES.EmailWorker(debug_only=False)
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
@@ -192,8 +193,6 @@ class Backend(QObject):
         self.search_thread = QThread()
         self.target_search_times = 0
         self.search_worker = None
-
-
 
     def update_destination_list(self, new_parser_results):
         result_emails = [MES.jsonParser.target(email_address=email, name="", source="", phone="") for email in
@@ -214,7 +213,7 @@ class Backend(QObject):
     destinationEmailListChanged = Signal()
     emlLoadStateChanged = Signal()
     emailWorkerStateChanged = Signal()
-    emailSendFinished = Signal(int)
+    emailSendFinished = Signal(int, int)
 
     # Functions - QML -> Python
     startSearchingEmail = Signal(str, int)
@@ -319,16 +318,15 @@ class Backend(QObject):
         self.destinationEmailListChanged.emit()
 
     def email_status_callback(self, destination_index: int, result: bool):
-        print(
-            f"Sending email to {destination_index}: {self.email_worker.destination_list[destination_index].email_address}. Result: {result}")
+        self.total_sent = destination_index + 1
 
     @Slot()
     def startSending(self):
         self.set_system_state(SystemState.SENDING)
-        if not self.email_worker.start_sending():  # (callback=self.email_status_callback):
+        if not self.email_worker.start_sending(callback=self.email_status_callback):  # (callback=self.email_status_callback):
             self.set_system_state(SystemState.ERROR)
         self.set_system_state(SystemState.DONE)
-        self.emailSendFinished.emit(len(self.email_worker.destination_list))
+        self.emailSendFinished.emit(self.total_sent, len(self.email_worker.destination_list))
 
     @Slot(int)
     def handleSelectionChange(self, current_index):
