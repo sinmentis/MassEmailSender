@@ -252,7 +252,7 @@ class EmailWorker:
             self._start_sending(None, callback)
         else:
             try:
-                with SMTP(self.current_sender["host"], self.current_sender["port"]) as server:
+                with SMTP(self.current_sender["host"], self.current_sender["port"], timeout=5) as server:
                     # server.set_debuglevel(2)
 
                     # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
@@ -266,7 +266,9 @@ class EmailWorker:
                     server.ehlo()  # re-identify ourselves as an encrypted connection
 
                     login_status = server.login(self.current_sender["username"], self.current_sender["password"])
+                    # print(f"login_status: {login_status}" )
                     self._start_sending(server, callback)
-            except:
+            except Exception as e:
+                print(f"error: {e}")
                 return False
         return True

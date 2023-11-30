@@ -323,9 +323,10 @@ class Backend(QObject):
     @Slot()
     def startSending(self):
         self.set_system_state(SystemState.SENDING)
-        if not self.email_worker.start_sending(callback=self.email_status_callback):  # (callback=self.email_status_callback):
+        if self.email_worker.start_sending(callback=self.email_status_callback):  # (callback=self.email_status_callback):
+            self.set_system_state(SystemState.DONE)
+        else:
             self.set_system_state(SystemState.ERROR)
-        self.set_system_state(SystemState.DONE)
         self.emailSendFinished.emit(self.total_sent, len(self.email_worker.destination_list))
 
     @Slot(int)
