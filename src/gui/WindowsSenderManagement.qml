@@ -204,7 +204,7 @@ ApplicationWindow {
                 TextField {
                     id: dailyLimitInput
                     width: 200
-                    text: senderList.get_dict_from_index(comboBox.currentIndex)["daily_send_limit"]? senderList.get_dict_from_index(comboBox.currentIndex)["daily_send_limit"]: ""
+                    text: senderList.get_dict_from_index(comboBox.currentIndex)["daily_send_limit"]? senderList.get_dict_from_index(comboBox.currentIndex)["daily_send_limit"]: 0
                 }
             }
 

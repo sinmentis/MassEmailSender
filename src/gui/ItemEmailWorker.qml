@@ -47,7 +47,7 @@ GroupBox {
 
         Text {
             text: "Status: "
-            width: 200
+            width: 50
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -57,12 +57,34 @@ GroupBox {
         Text {
             id: workerstateText
             text: backend.emailWorkerStateStr
-            width: 200
+            width: 100
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             color: getColor()
-            font.pointSize: 20
+            font.pointSize: 15
+            function getColor() {
+                if (backend.emailWorkerState == 0) {
+                    return "red"
+                } else if (backend.emailWorkerState == 1 || backend.emailWorkerState == 3 || backend.emailWorkerState == 4) {
+                    return "green"
+                } else if (backend.emailWorkerState == 2 || backend.emailWorkerState == 5) {
+                    return "white"
+                } else {
+                    return "white"
+                }
+            }
+        }
+
+        Text {
+            id: emailNumText
+            text: "0/0"
+            width: 100
+            height: parent.height
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            color: getColor()
+            font.pointSize: 15
             function getColor() {
                 if (backend.emailWorkerState == 0) {
                     return "red"
@@ -99,8 +121,8 @@ GroupBox {
             workerstateText.text = backend.emailWorkerStateStr
         }
 
-        function onEmailSendFinished(sent, total) {
-            workerstateText.text = sent + "/" + total
+        function onEmailSendUpdate(sent, total) {
+            emailNumText.text = sent + "/" + total
         }
     }
 }

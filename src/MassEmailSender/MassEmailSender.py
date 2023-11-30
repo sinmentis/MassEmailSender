@@ -141,13 +141,13 @@ class EmailWorker:
                  sender_list: typing.List[jsonParser.sender_email_account] | None = None,
                  email_content: EmailMessage | None = None,
                  debug_only=False):
+        self.num_email_sent = 0
         self.destination_list = destination_list if destination_list else []
         self.sender_list = sender_list
         self.email_content = email_content
         self.debug_only = debug_only
 
         self.current_sender = None if sender_list is None else sender_list[0]
-        self.destination_already_sent_list = []
 
     def export_destination(self, filename):
         num_destinations = len(self.destination_list)
@@ -160,7 +160,7 @@ class EmailWorker:
             destinations_subset = self.destination_list[start_index:end_index]
 
             data = {"email_list": [destination.to_dict() for destination in destinations_subset]}
-            filename_with_index = f"{filename} - {i+1}_{num_files}.json"
+            filename_with_index = f"{filename} - {i + 1}_{num_files}.json"
             with open(filename_with_index, "w") as file:
                 json.dump(data, file, indent=4)
 
@@ -194,33 +194,21 @@ class EmailWorker:
         else:
             raise Exception(f"Err: currently only {len(self.sender_list)} sender exist, asking for {index}")
 
-    def _check_sender_daily_limit(self, callback):
-        if self.current_sender["daily_send_number"] >= self.current_sender["daily_send_limit"]:
-            new_sender_index = self.sender_list.sender_list.index(self.current_sender) + 1
-            print("Max limit hit, Next select: ", new_sender_index)
+    def _switch_next_available_sender(self):
+        new_sender_index = self.sender_list.sender_list.index(self.current_sender) + 1
+        if new_sender_index >= len(self.sender_list):
+            print("No more available sender, exit")
+            return False
+        else:
+            print("Next select: ", new_sender_index)
+            self.select_sender(new_sender_index)
+        return True
 
-            # If reach end of the list, exit
-            if new_sender_index >= len(self.sender_list):
-                print("No more available sender, exit")
-                return True
-            else:
-                self.select_sender(new_sender_index)
-                try:
-                    self.destination_list = self.destination_list[max(self.destination_already_sent_list)+1:]
-                except:
-                    pass
-                self.start_sending(callback)
-            return True
-        return False
+    def _check_sender_daily_limit(self):
+        return self.current_sender["daily_send_limit"] - self.current_sender["daily_send_number"]
 
-    def _start_sending(self, server, callback):
-        self.destination_already_sent_list = []
-        for index, destination in enumerate(self.destination_list):
-
-            # Check if sender already sent enough for today
-            if self._check_sender_daily_limit(callback):
-                return
-
+    def _start_sending(self, server, email_list, callback):
+        for index, destination in enumerate(email_list):
             if 'From' in self.email_content.keys():
                 self.email_content.replace_header('From', Header(self.current_sender["username"], 'utf-8'))
             else:
@@ -230,45 +218,49 @@ class EmailWorker:
             else:
                 self.email_content['To'] = Header(destination.email_address, 'utf-8')
 
-            result = True
-            if not self.debug_only:
+            if self.debug_only:
+                print(f"DEBUG_ONLY: Email Sent from {self.current_sender['username']} to {destination['email_address']}")
+            else:
                 try:
                     server.send_message(self.email_content)
+                    self.current_sender["daily_send_number"] += 1
+                    print(
+                        f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
+                        f"{str(self.email_content['To']):<20}")
+                    self.num_email_sent += 1
+                    callback(self.num_email_sent)
                 except:
-                    result = False
-
-            self.current_sender["daily_send_number"] += 1
-            self.destination_already_sent_list.append(index)
-            if callback:
-                callback(index, result)
-
-            print(
-                f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
-                f"{str(self.email_content['To']):<20}\t{result}")
+                    break
 
     def start_sending(self, callback=None):
-        if self.debug_only:
-            print("Fake login successes")
-            self._start_sending(None, callback)
-        else:
-            try:
-                with SMTP(self.current_sender["host"], self.current_sender["port"], timeout=5) as server:
-                    # server.set_debuglevel(2)
+        email_left = self.destination_list[:]
+        self.num_email_sent = 0
 
-                    # Put the SMTP connection in TLS (Transport Layer Security) mode. All SMTP commands that follow will be
-                    # encrypted
-                    server.ehlo()  # Identify yourself to an ESMTP server using EHLO
-                    if server.has_extn('STARTTLS'):
-                        print("STARTTLS extension is supported.")
-                        server.starttls()
-                    else:
-                        print("STARTTLS extension is not supported.")
-                    server.ehlo()  # re-identify ourselves as an encrypted connection
+        while len(email_left) != 0:
+            num_email_available = self._check_sender_daily_limit()
+            if num_email_available > 0:
+                try:
+                    with SMTP(self.current_sender["host"], self.current_sender["port"], timeout=5) as server:
+                        # server.set_debuglevel(2)
+                        # Put the SMTP connection in TLS (Transport Layer Security) mode.
+                        # All SMTP commands that follow will be encrypted
+                        server.ehlo()  # Identify yourself to an ESMTP server using EHLO
+                        if server.has_extn('STARTTLS'):
+                            # print("STARTTLS extension is supported.")
+                            server.starttls()
+                        else:
+                            print("STARTTLS extension is not supported.")
+                        server.ehlo()  # re-identify ourselves as an encrypted connection
 
-                    login_status = server.login(self.current_sender["username"], self.current_sender["password"])
-                    # print(f"login_status: {login_status}" )
-                    self._start_sending(server, callback)
-            except Exception as e:
-                print(f"error: {e}")
-                return False
+                        login_status = server.login(self.current_sender["username"], self.current_sender["password"])
+                        # print(f"login_status: {login_status}" )
+                        self._start_sending(server, email_left[:num_email_available], callback)
+                        email_left = email_left[num_email_available:]
+                except Exception as e:
+                    print(f"error: {e}")
+                    if not self._switch_next_available_sender():
+                        return
+            else:
+                if not self._switch_next_available_sender():
+                    return False
         return True

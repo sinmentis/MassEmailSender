@@ -172,6 +172,7 @@ class MyApp(QObject):
 class Backend(QObject):
     def __init__(self, engine):
         super().__init__()
+
         self.email_parser_emailAll = emailall.EmailAll(debug_only=False)
         self.email_parser_frisbee = Frisbee.Frisbee(log_level=logging.DEBUG, save=False)
         self.email_parser_pyhunter = PyHunter.PyHunter(pyhunter_API_getter())
@@ -184,7 +185,6 @@ class Backend(QObject):
         self.engine.rootContext().setContextProperty("senderList", self.sender_list)
 
         # For Sending engine
-        self.total_sent = 0
         self.email_worker = MES.EmailWorker(debug_only=False)
         self.email_worker.add_sender_list(self.sender_list)
         self.email_worker.select_sender(0)
@@ -213,7 +213,7 @@ class Backend(QObject):
     destinationEmailListChanged = Signal()
     emlLoadStateChanged = Signal()
     emailWorkerStateChanged = Signal()
-    emailSendFinished = Signal(int, int)
+    emailSendUpdate = Signal(int, int)
 
     # Functions - QML -> Python
     startSearchingEmail = Signal(str, int)
@@ -317,17 +317,19 @@ class Backend(QObject):
         self.email_worker.remove_destination_list(index)
         self.destinationEmailListChanged.emit()
 
-    def email_status_callback(self, destination_index: int, result: bool):
-        self.total_sent = destination_index + 1
+    @Slot(int)
+    def updateUIOnEmailSent(self, number_sent: int):
+        self.emailSendUpdate.emit(number_sent, len(self.email_worker.destination_list))
 
     @Slot()
     def startSending(self):
+        self.updateUIOnEmailSent(0)
         self.set_system_state(SystemState.SENDING)
-        if self.email_worker.start_sending(callback=self.email_status_callback):  # (callback=self.email_status_callback):
+        # TODO: Change email_worker into QThread might be better
+        if self.email_worker.start_sending(callback=self.updateUIOnEmailSent):
             self.set_system_state(SystemState.DONE)
         else:
             self.set_system_state(SystemState.ERROR)
-        self.emailSendFinished.emit(self.total_sent, len(self.email_worker.destination_list))
 
     @Slot(int)
     def handleSelectionChange(self, current_index):
