@@ -18,7 +18,7 @@ Window {
     color: "#3c3d22"
     visible: true
 
-    title: "Massive Email Sender v2.1"
+    title: "Massive Email Sender v2.2"
 
 
     property bool debug: false
