@@ -219,18 +219,15 @@ class EmailWorker:
                 self.email_content['To'] = Header(destination.email_address, 'utf-8')
 
             if self.debug_only:
-                print(f"DEBUG_ONLY: Email Sent from {self.current_sender['username']} to {destination['email_address']}")
+                print(
+                    f"DEBUG_ONLY: Email Sent from {self.current_sender['username']} to {destination.email_address}")
             else:
-                try:
-                    server.send_message(self.email_content)
-                    self.current_sender["daily_send_number"] += 1
-                    print(
-                        f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> "
-                        f"{str(self.email_content['To']):<20}")
-                    self.num_email_sent += 1
-                    callback(self.num_email_sent)
-                except:
-                    break
+                server.send_message(self.email_content)
+                self.current_sender["daily_send_number"] += 1
+                print(
+                    f"({index + 1}/{len(self.destination_list):<5})\t{str(self.email_content['From']):<10} -> {str(self.email_content['To']):<20}")
+                self.num_email_sent += 1
+                callback(self.num_email_sent)
 
     def start_sending(self, callback=None):
         email_left = self.destination_list[:]
@@ -253,13 +250,14 @@ class EmailWorker:
                         server.ehlo()  # re-identify ourselves as an encrypted connection
 
                         login_status = server.login(self.current_sender["username"], self.current_sender["password"])
-                        # print(f"login_status: {login_status}" )
-                        self._start_sending(server, email_left[:num_email_available], callback)
-                        email_left = email_left[num_email_available:]
+                        print(f"login_status: {login_status}")
+                        number_to_send = min(len(email_left), num_email_available)
+                        self._start_sending(server, email_left[:number_to_send], callback)
+                        email_left = email_left[number_to_send:]
                 except Exception as e:
-                    print(f"error: {e}")
+                    print(f"Send err: {e}")
                     if not self._switch_next_available_sender():
-                        return
+                        return False
             else:
                 if not self._switch_next_available_sender():
                     return False
